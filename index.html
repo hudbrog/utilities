@@ -471,7 +471,7 @@
     if (userValue === currentProblem.correctAnswer) {
       feedback.textContent = 'Верно!';
       // fireworks for correct answer (small)
-      showConfetti(15, 1500);
+      showConfetti(50, 1500);
 
       // update stats
       updateStats(currentProblem, true);
@@ -507,7 +507,7 @@
     toggleLogBtn.classList.remove('hidden');
 
     // bigger fireworks at finish
-    showConfetti(50, 3000);
+    showConfetti(300, 3000);
 
     // end time
     const endTime = new Date();
