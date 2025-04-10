@@ -2,13 +2,14 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Тренажёр по математике с интервалами повторения</title>
+  <title>Тренажёр по математике с «фейерверками»</title>
   <style>
     body {
       font-family: sans-serif;
       margin: 20px;
       max-width: 700px;
       font-size: 1.5em; /* Make base text bigger */
+      position: relative; /* for confetti positioning */
     }
     #config {
       margin-bottom: 20px;
@@ -119,6 +120,38 @@
       font-size: 2em;
       margin-bottom: 10px;
     }
+
+    /* Firework confetti styles */
+    .confetti-container {
+      pointer-events: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 9999;
+    }
+
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: red;
+      border-radius: 50%;
+      animation: confetti-firework 1.5s ease-out forwards;
+    }
+
+    @keyframes confetti-firework {
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(var(--endx, 0), var(--endy, 0)) scale(0.5);
+        opacity: 0;
+      }
+    }
   </style>
 </head>
 <body>
@@ -167,7 +200,7 @@
           <th>Успешность (%)</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="statsBody">
         <!-- Populated dynamically -->
       </tbody>
     </table>
@@ -215,7 +248,7 @@
   const configEl = document.getElementById('config');
   const showStatsBtn = document.getElementById('showStatsBtn');
   const statsEl = document.getElementById('stats');
-  const statsTable = document.getElementById('statsTable').querySelector('tbody');
+  const statsTable = document.getElementById('statsBody');
   const clearStatsBtn = document.getElementById('clearStatsBtn');
   const timeTakenEl = document.getElementById('timeTaken');
 
@@ -237,14 +270,7 @@
   let solvedCount = 0;  // how many have been solved
   let startTime = 0;    // track start time for this session
 
-  /**
-   *  LocalStorage stats: an object like:
-   *  {
-   *    '3 + 7': { attempts: 4, correct: 2 },
-   *    '9 - 2': { attempts: 10, correct: 10 },
-   *    ...
-   *  }
-   */
+  // Load/Save Stats
   function loadStats() {
     const data = localStorage.getItem('mathTrainerStats');
     if (!data) {
@@ -284,7 +310,7 @@
     return ((a % 10) + (b % 10)) >= 10;
   }
 
-  // Check if subtraction crosses a ten boundary (i.e., requires borrowing).
+  // Check if subtraction crosses a ten boundary
   function crossesTensSubtraction(a, b) {
     return (b % 10) > (a % 10);
   }
@@ -313,7 +339,6 @@
               allProblems.push({ operand1: a, operand2: b, operator: '+', correctAnswer: a + b });
             }
           } else {
-            // For subtraction, optionally avoid negative results:
             let A = a;
             let B = b;
             if (B > A) {
@@ -373,6 +398,71 @@
     }
   }
 
+  // Show fireworks effect in 5 random locations
+  function showConfetti(count = 100, duration = 1500) {
+    // We'll do 5 small fireworks bursts at random screen locations.
+    // total confetti pieces = count.
+    // So each burst gets count/5 pieces.
+
+    const bursts = 5;
+    const piecesPerBurst = Math.floor(count / bursts);
+
+    const container = document.createElement('div');
+    container.classList.add('confetti-container');
+    document.body.appendChild(container);
+
+    // viewport dimensions
+    const screenW = window.innerWidth;
+    const screenH = window.innerHeight;
+
+    const colors = ['#ff0', '#f0f', '#0ff', '#f00', '#0f0', '#00f'];
+
+    for (let b = 0; b < bursts; b++) {
+      // pick a random burst center
+      const burstX = Math.random() * screenW * 0.8 + screenW * 0.1; // keep within screen
+      const burstY = Math.random() * screenH * 0.8 + screenH * 0.1;
+
+      // spawn pieces
+      for (let i = 0; i < piecesPerBurst; i++) {
+        const confettiPiece = document.createElement('div');
+        confettiPiece.classList.add('confetti');
+        confettiPiece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+
+        // position the piece at the burst center
+        confettiPiece.style.left = burstX + 'px';
+        confettiPiece.style.top = burstY + 'px';
+
+        // random angle/distance for the end position
+        const angle = Math.random() * 2 * Math.PI;
+        const distance = 50 + Math.random() * 150; // how far it goes
+        const endX = Math.cos(angle) * distance;
+        const endY = Math.sin(angle) * distance;
+
+        // set the custom properties for keyframes
+        confettiPiece.style.setProperty('--endx', endX + 'px');
+        confettiPiece.style.setProperty('--endy', endY + 'px');
+
+        // random delay so they don't all animate simultaneously
+        const delay = (Math.random() * 0.5).toFixed(2) + 's';
+        confettiPiece.style.animationDelay = delay;
+
+        // random size
+        const size = Math.floor(Math.random() * 8 + 8);
+        confettiPiece.style.width = size + 'px';
+        confettiPiece.style.height = size + 'px';
+
+        container.appendChild(confettiPiece);
+      }
+    }
+
+    // remove container after the duration
+    setTimeout(() => {
+      if (document.body.contains(container)) {
+        document.body.removeChild(container);
+      }
+    }, duration);
+  }
+
   // When user clicks 'Check'
   function checkAnswer() {
     let userValue = parseInt(userAnswer.value, 10);
@@ -380,6 +470,9 @@
 
     if (userValue === currentProblem.correctAnswer) {
       feedback.textContent = 'Верно!';
+      // fireworks for correct answer (small)
+      showConfetti(15, 1500);
+
       // update stats
       updateStats(currentProblem, true);
 
@@ -413,6 +506,9 @@
     congrats.classList.remove('hidden');
     toggleLogBtn.classList.remove('hidden');
 
+    // bigger fireworks at finish
+    showConfetti(50, 3000);
+
     // end time
     const endTime = new Date();
     const durationSeconds = Math.floor((endTime - startTime) / 1000);
@@ -435,7 +531,7 @@
     congrats.classList.add('hidden');
     problemContainer.classList.remove('hidden');
     problemLog.style.display = 'none';
-    problemLog.innerHTML = '';  // clear old log
+    problemLog.innerHTML = '';
     toggleLogBtn.classList.add('hidden');
     toggleLogBtn.textContent = 'Показать журнал';
 
@@ -513,22 +609,18 @@
       const correct = data.correct;
       const ratio = attempts > 0 ? ((correct / attempts) * 100).toFixed(1) : '0';
 
-      // Пример
       let cellProblem = document.createElement('td');
       cellProblem.textContent = k;
       row.appendChild(cellProblem);
 
-      // Всего попыток
       let cellAttempts = document.createElement('td');
       cellAttempts.textContent = attempts;
       row.appendChild(cellAttempts);
 
-      // Правильных ответов
       let cellCorrect = document.createElement('td');
       cellCorrect.textContent = correct;
       row.appendChild(cellCorrect);
 
-      // Успешность
       let cellRatio = document.createElement('td');
       cellRatio.textContent = ratio;
       row.appendChild(cellRatio);
