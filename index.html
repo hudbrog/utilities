@@ -182,6 +182,9 @@
     <input type="checkbox" id="allowCrossTens" checked> Разрешать переход через десяток
   </label>
   <label>
+    <input type="checkbox" id="onlyCrossTens"> Только переход через десяток
+  </label>
+  <label>
     <input type="checkbox" id="incorrectCounts"> Неправильный ответ засчитывается
   </label>
   <br>
@@ -262,9 +265,10 @@
   const numProblemsEl = document.getElementById('numProblems');
   const allowCrossTensEl = document.getElementById('allowCrossTens');
   const incorrectCountsEl = document.getElementById('incorrectCounts');
+  const onlyCrossTensEl = document.getElementById('onlyCrossTens'); // Added
 
   // Internal state
-  let problems = [];  // array of {operand1, operand2, operator, correctAnswer}
+  let problems = [];  // array of {operand1, operand2, operator, correctAnswer, crosses} // Added crosses property
   let currentIndex = 0; // which problem we’re on
   let totalToSolve = 0; // total # of problems to solve
   let solvedCount = 0;  // how many have been solved
@@ -327,31 +331,54 @@
     if (opSubEl.checked) ops.push('-');
 
     const allowCross = allowCrossTensEl.checked;
+    const onlyCross = onlyCrossTensEl.checked; // Added
 
-    const allProblems = [];
+    let allProblems = []; // Changed from const to let
 
     for (let a = min1; a <= max1; a++) {
       for (let b = min2; b <= max2; b++) {
         for (let op of ops) {
           if (op === '+') {
             const crosses = crossesTensAddition(a, b);
-            if (allowCross || (!allowCross && !crosses)) {
-              allProblems.push({ operand1: a, operand2: b, operator: '+', correctAnswer: a + b });
-            }
-          } else {
+            // Generate all, filter later
+            allProblems.push({ operand1: a, operand2: b, operator: '+', correctAnswer: a + b, crosses: crosses }); // Added crosses property
+          } else { // op === '-'
             let A = a;
             let B = b;
+            // Ensure A >= B for subtraction
             if (B > A) {
-              [A, B] = [B, A];
+              [A, B] = [B, A]; // Swap if b > a
             }
+            // Check if the original range allows the swapped numbers if necessary
+            const originalAInRange = (A >= min1 && A <= max1);
+            const originalBInRange = (B >= min2 && B <= max2);
+            const swappedAInRange = (A >= min2 && A <= max2); // Check swapped A against range 2
+            const swappedBInRange = (B >= min1 && B <= max1); // Check swapped B against range 1
+
+            // Only proceed if the (potentially swapped) operands fit *some* valid range combination
+            // This logic might need refinement depending on desired behavior for asymmetric ranges when swapping.
+            // For simplicity, we assume symmetric ranges or that swapping is acceptable.
+            // A stricter check might be needed if ranges are very different (e.g., [1-5] and [90-99]).
+            // Current logic: If B > A initially, we swap and proceed.
+
             const crosses = crossesTensSubtraction(A, B);
-            if (allowCross || (!allowCross && !crosses)) {
-              allProblems.push({ operand1: A, operand2: B, operator: '-', correctAnswer: A - B });
-            }
+            // Generate all, filter later
+            allProblems.push({ operand1: A, operand2: B, operator: '-', correctAnswer: A - B, crosses: crosses }); // Added crosses property
           }
         }
       }
     }
+
+    // Filter based on crossing rules
+    allProblems = allProblems.filter(p => {
+      if (p.crosses) {
+        // If it crosses, keep only if allowCross is checked
+        return allowCross;
+      } else {
+        // If it doesn't cross, keep only if onlyCross is NOT checked
+        return !onlyCross;
+      }
+    });
 
     return allProblems;
   }
