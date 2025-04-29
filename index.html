@@ -379,9 +379,13 @@
         const st = stats[key];
         const attempts = st.attempts;
         const correct = st.correct;
-        p.ratio = attempts > 0 ? (correct / attempts) : 1.0;
+        p.ratio = attempts > 0 ? (correct / attempts) : 1.0; 
       }
     });
+
+    // Shuffle the entire list BEFORE sorting by ratio.
+    // This randomizes the order of problems with the same success ratio.
+    all = shuffle(all);
 
     // sort ascending by ratio (lowest ratio = worst success => appear first)
     all.sort((a, b) => a.ratio - b.ratio);
@@ -392,6 +396,8 @@
       num = all.length;
     }
     let selected = all.slice(0, num);
+
+    // Shuffle the final selected list again for good measure
     problems = shuffle(selected);
   }
 
