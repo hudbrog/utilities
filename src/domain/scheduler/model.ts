@@ -8,7 +8,7 @@ export type DirectionState = {
   direction: Direction;
   introduced: boolean;
   stage: MasteryStage;
-  nextDueAt: number;
+  nextDueAt: number | null;
   successfulSpokenRecall: boolean;
   recentFailureCount: number;
   lifetimeFailureCount: number;

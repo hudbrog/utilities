@@ -31,7 +31,7 @@ export type SessionGenerationInput = {
 
 function compareDue(left: ReviewCandidate, right: ReviewCandidate): number {
   return (
-    left.state.nextDueAt - right.state.nextDueAt ||
+    (left.state.nextDueAt ?? Number.POSITIVE_INFINITY) - (right.state.nextDueAt ?? Number.POSITIVE_INFINITY) ||
     left.state.stage - right.state.stage ||
     left.concept.id.localeCompare(right.concept.id) ||
     left.state.direction.localeCompare(right.state.direction)
@@ -67,7 +67,9 @@ export function generateSession(input: SessionGenerationInput): SessionQuestion[
   const backlogThreshold = input.suppressNewWhenDueExceeds ?? 30;
   if (!Number.isInteger(chunkSize) || chunkSize <= 0) throw new RangeError("Chunk size must be positive");
 
-  const due = input.dueReviews.filter((candidate) => candidate.state.nextDueAt <= input.now).sort(compareDue);
+  const due = input.dueReviews
+    .filter((candidate) => candidate.state.nextDueAt !== null && candidate.state.nextDueAt <= input.now)
+    .sort(compareDue);
   const quotaRemaining = Math.max(0, dailyQuota - input.introducedToday);
   const introductionCapacity = Math.floor(chunkSize / 2);
   const newCount = due.length > backlogThreshold ? 0 : Math.min(quotaRemaining, introductionCapacity, input.newConcepts.length);

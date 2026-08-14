@@ -18,6 +18,8 @@ The deployed UI is still the Stage 0 diagnostic PWA. It validates the risks that
 
 Phase 1 domain implementation is underway under `src/domain`. It currently includes the validated curriculum contract, exact answer normalization, deterministic distractors and exercise policy, the 0–7 SRS scheduler, local-calendar due-date arithmetic, STT-problem evidence tracking, deterministic session generation, backlog suppression, and in-session remediation insertion. These modules are deliberately independent of React, Dexie, browser APIs, and the wall clock.
 
+The Phase 2 storage foundation under `src/infrastructure/db` provides the versioned learner database, curriculum reconciliation, resumable materialized queues, atomic and idempotent answer commits, introduction-ledger accounting, and validated backup/restore. Stage 0 diagnostic records remain in their separate database.
+
 The recovered Duome archive supplies stable English lexemes and course order, but not Russian translations. A production curriculum bundle therefore remains blocked on a curated translation input; the app does not invent translations or synonyms.
 
 The previous math trainer is preserved at [`/utilities/legacy/math-trainer.html`](https://hudbrog.github.io/utilities/legacy/math-trainer.html).
