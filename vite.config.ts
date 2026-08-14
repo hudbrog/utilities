@@ -20,4 +20,7 @@ export default defineConfig({
       },
     }),
   ],
+  test: {
+    include: ["src/**/*.test.ts", "tools/**/*.test.mjs"],
+  },
 });

@@ -10,19 +10,28 @@
     "build:verify": "node tools/verify-build.mjs",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
-    "curriculum:inspect": "node tools/curriculum-importer/inspect-duome.mjs"
+    "curriculum:inspect": "node tools/curriculum-importer/inspect-duome.mjs",
+    "curriculum:worklist": "node tools/curriculum-importer/build-worklist.mjs",
+    "curriculum:generate": "node tools/curriculum-importer/run-llm-stage.mjs generate",
+    "curriculum:review": "node tools/curriculum-importer/run-llm-stage.mjs review",
+    "curriculum:prepare-approval": "node tools/curriculum-importer/prepare-approval.mjs",
+    "curriculum:validate": "node tools/curriculum-importer/validate-curriculum.mjs",
+    "curriculum:assemble": "node tools/curriculum-importer/assemble-curriculum.mjs"
   },
   "dependencies": {
     "dexie": "4.4.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "workbox-window": "7.4.1"
+    "workbox-window": "7.4.1",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/node": "26.2.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "@vitejs/plugin-react": "6.0.5",
+    "fake-indexeddb": "6.2.5",
+    "openai": "7.4.0",
     "typescript": "7.0.2",
     "vite": "8.2.1",
     "vite-plugin-pwa": "1.3.0",
