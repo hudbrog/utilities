@@ -4,9 +4,9 @@ Offline-first vocabulary trainer for a Russian-speaking child learning English. 
 
 <https://hudbrog.github.io/utilities/>
 
-## Current state: Stage 0
+## Current state
 
-The current build is a diagnostic PWA, not the learner application yet. It validates the risks that must pass on the intended iPhone/iPad before the complete UI is built:
+The deployed UI is still the Stage 0 diagnostic PWA. It validates the risks that must pass on the intended iPhone/iPad before the complete learner UI is built:
 
 - installed home-screen launch;
 - complete offline app-shell caching;
@@ -15,6 +15,10 @@ The current build is a diagnostic PWA, not the learner application yet. It valid
 - feature-detected on-device speech language-pack APIs;
 - IndexedDB persistence across relaunch, reboot, and static releases;
 - a locally saved physical-device gate checklist and downloadable JSON report.
+
+Phase 1 domain implementation is underway under `src/domain`. It currently includes the validated curriculum contract, exact answer normalization, deterministic distractors and exercise policy, the 0–7 SRS scheduler, local-calendar due-date arithmetic, STT-problem evidence tracking, deterministic session generation, backlog suppression, and in-session remediation insertion. These modules are deliberately independent of React, Dexie, browser APIs, and the wall clock.
+
+The recovered Duome archive supplies stable English lexemes and course order, but not Russian translations. A production curriculum bundle therefore remains blocked on a curated translation input; the app does not invent translations or synonyms.
 
 The previous math trainer is preserved at [`/utilities/legacy/math-trainer.html`](https://hudbrog.github.io/utilities/legacy/math-trainer.html).
 
