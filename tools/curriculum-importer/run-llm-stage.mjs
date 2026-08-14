@@ -13,15 +13,22 @@ const worklistPath = required(args, "worklist");
 const outputPath = required(args, "output");
 const batchSize = positiveInteger(args["batch-size"], 20);
 const limit = args.limit === undefined ? Infinity : positiveInteger(args.limit);
-const model = args.model ?? process.env[mode === "generate" ? "OPENAI_GENERATION_MODEL" : "OPENAI_REVIEW_MODEL"] ?? "gpt-5-mini";
-if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is required");
+const model = args.model ?? process.env[mode === "generate" ? "OPENROUTER_GENERATION_MODEL" : "OPENROUTER_REVIEW_MODEL"] ?? "openai/gpt-5.6-luna";
+if (!process.env.OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is required");
 
 const worklist = await readJsonl(worklistPath);
 const candidates = mode === "review" ? byConceptId(await readJsonl(required(args, "candidates")), "candidates") : null;
 const saved = await readJsonl(outputPath, { optional: true });
 const completed = byConceptId(saved, outputPath);
 let pending = worklist.filter(({ conceptId }) => !completed.has(conceptId)).slice(0, limit);
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const client = new OpenAI({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
+  defaultHeaders: {
+    "HTTP-Referer": process.env.OPENROUTER_HTTP_REFERER ?? "https://github.com/hudbrog/utilities",
+    "X-OpenRouter-Title": process.env.OPENROUTER_APP_TITLE ?? "English Learning SRS Curriculum Pipeline",
+  },
+});
 
 const generationPrompt = `Create conservative Russian-learning curriculum records for a Russian-speaking child learning English.
 Use the English headword, part of speech, infinitive, unit and Russian skill name as context. canonicalRu must be the most direct child-friendly translation for this sense. acceptedRu and acceptedEn are answer aliases, not broad synonyms: include only forms that are semantically interchangeable in this exact exercise. Do not add an alias merely because it is related. Flag ambiguity, phrases, proper names, fragments, or unsuitable items. Preserve conceptId exactly.`;
@@ -38,6 +45,7 @@ for (let offset = 0; offset < pending.length; offset += batchSize) {
     try {
       const response = await client.responses.parse({
         model,
+        provider: { require_parameters: true },
         input: [{ role: "system", content: mode === "generate" ? generationPrompt : reviewPrompt }, { role: "user", content: JSON.stringify(input) }],
         text: { format: zodTextFormat(schema, `${mode}_curriculum_batch`) },
       });

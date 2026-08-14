@@ -1,6 +1,6 @@
 # Production curriculum pipeline
 
-This toolchain converts the recovered course archive into a reviewed curriculum bundle. Intermediate files are JSON/JSONL and provider-independent; only the generation and review stage uses the OpenAI adapter.
+This toolchain converts the recovered course archive into a reviewed curriculum bundle. Intermediate files are JSON/JSONL and provider-independent; generation and review use OpenRouter through its OpenAI-compatible API.
 
 ## 1. Build the stable source worklist
 
@@ -19,7 +19,7 @@ Inspect `unresolved` in the manifest before continuing.
 ## 2. Generate and independently review translations
 
 ```bash
-export OPENAI_API_KEY='...'
+export OPENROUTER_API_KEY='...'
 
 pnpm curriculum:generate -- \
   --worklist .curriculum/source.worklist.jsonl \
@@ -33,7 +33,15 @@ pnpm curriculum:review -- \
   --batch-size 20
 ```
 
-Both commands checkpoint after every batch and skip completed concept IDs when rerun. Use `--limit 100` for a trial. The default model is `gpt-5-mini`; override it with `--model`, `OPENAI_GENERATION_MODEL`, or `OPENAI_REVIEW_MODEL`. For a genuinely independent audit, use a different reviewer model or provider.
+Both commands checkpoint after every batch and skip completed concept IDs when rerun. Use `--limit 100` for a trial. The default model is `openai/gpt-5.6-luna`; override it with `--model`, `OPENROUTER_GENERATION_MODEL`, or `OPENROUTER_REVIEW_MODEL`. For a genuinely independent audit, set a different OpenRouter model for the review pass.
+
+The adapter defaults to `https://openrouter.ai/api/v1` and requires providers to support the structured-output parameters used by the pipeline. Optional configuration:
+
+```bash
+export OPENROUTER_BASE_URL='https://openrouter.ai/api/v1'
+export OPENROUTER_HTTP_REFERER='https://github.com/hudbrog/utilities'
+export OPENROUTER_APP_TITLE='English Learning SRS Curriculum Pipeline'
+```
 
 ## 3. Human approval and validation
 
