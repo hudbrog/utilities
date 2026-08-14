@@ -34,3 +34,9 @@ test("builds, validates, and assembles an approved bundle", async () => {
   await run("./assemble-curriculum.mjs", ["--worklist", worklist, "--manifest", manifest, "--approved", approved, "--output", bundle]);
   expect(JSON.parse(await readFile(bundle, "utf8"))).toMatchObject({ curriculumVersion: "test-1", concepts: [{ en: "cat", ru: "кот" }] });
 });
+
+test("LLM stages require an OpenRouter key", async () => {
+  await expect(exec(process.execPath, [new URL("./run-llm-stage.mjs", import.meta.url).pathname, "generate", "--worklist", "unused", "--output", "unused"], {
+    env: { ...process.env, OPENROUTER_API_KEY: "", OPENAI_API_KEY: "should-not-be-used" },
+  })).rejects.toMatchObject({ stderr: expect.stringContaining("OPENROUTER_API_KEY is required") });
+});
