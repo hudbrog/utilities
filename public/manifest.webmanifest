@@ -1,0 +1,31 @@
+{
+  "name": "Английские слова — проверка",
+  "short_name": "Слова",
+  "description": "Проверка офлайн-режима и речи для English Learning SRS",
+  "id": "/utilities/",
+  "start_url": "/utilities/#/",
+  "scope": "/utilities/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f4f2ea",
+  "theme_color": "#1f6f78",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "/utilities/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/utilities/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/utilities/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
