@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { LearnerApp } from "./features/study/LearnerApp";
 import { GateChecklist } from "./features/diagnostics/GateChecklist";
 import {
   SpeechTestCard,
@@ -30,7 +31,15 @@ function formatTime(timestamp?: number) {
   return new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "medium" }).format(timestamp);
 }
 
-export default function App() {
+function DiagnosticsApp({
+  closeDiagnostics,
+  pwa,
+  applyUpdate,
+}: {
+  closeDiagnostics: () => void;
+  pwa: PwaState;
+  applyUpdate: ((reloadPage?: boolean) => Promise<void>) | null;
+}) {
   const [online, setOnline] = useState(navigator.onLine);
   const [probe, setProbe] = useState<ProbeSummary>({ count: 0 });
   const [gateResults, setGateResults] = useState<GateResult[]>([]);
@@ -38,8 +47,6 @@ export default function App() {
   const [storagePersistent, setStoragePersistent] = useState<boolean | null>(null);
   const [storageMessage, setStorageMessage] = useState<string | null>(null);
   const [dbError, setDbError] = useState<string | null>(null);
-  const [pwa, setPwa] = useState<PwaState>({ offlineReady: false, needRefresh: false });
-  const [applyUpdate, setApplyUpdate] = useState<((reloadPage?: boolean) => Promise<void>) | null>(null);
 
   const standalone =
     window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
@@ -72,16 +79,6 @@ export default function App() {
 
     if (navigator.storage?.persisted) {
       void navigator.storage.persisted().then(setStoragePersistent).catch(() => setStoragePersistent(null));
-    }
-
-    if ("serviceWorker" in navigator) {
-      void navigator.serviceWorker.ready.then(() => setPwa((current) => ({ ...current, offlineReady: true })));
-      const updater = registerPwa({
-        onOfflineReady: () => setPwa((current) => ({ ...current, offlineReady: true })),
-        onNeedRefresh: () => setPwa((current) => ({ ...current, needRefresh: true })),
-        onRegistrationError: (error) => setPwa((current) => ({ ...current, error: error.message })),
-      });
-      setApplyUpdate(() => updater);
     }
 
     return () => {
@@ -159,6 +156,8 @@ export default function App() {
           </p>
         </div>
       </header>
+
+      <button className="button button--secondary" onClick={closeDiagnostics} type="button">← Вернуться к занятиям</button>
 
       <section className="status-strip" aria-label="Текущий статус">
         <div>
@@ -276,6 +275,35 @@ export default function App() {
       </footer>
     </main>
   );
+}
+
+export default function App() {
+  const [diagnostics, setDiagnostics] = useState(window.location.hash === "#diagnostics");
+  const [pwa, setPwa] = useState<PwaState>({ offlineReady: false, needRefresh: false });
+  const [applyUpdate, setApplyUpdate] = useState<((reloadPage?: boolean) => Promise<void>) | null>(null);
+
+  useEffect(() => {
+    const syncRoute = () => setDiagnostics(window.location.hash === "#diagnostics");
+    window.addEventListener("hashchange", syncRoute);
+    return () => window.removeEventListener("hashchange", syncRoute);
+  }, []);
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    void navigator.serviceWorker.ready.then(() => setPwa((current) => ({ ...current, offlineReady: true })));
+    const updater = registerPwa({
+      onOfflineReady: () => setPwa((current) => ({ ...current, offlineReady: true })),
+      onNeedRefresh: () => setPwa((current) => ({ ...current, needRefresh: true })),
+      onRegistrationError: (error) => setPwa((current) => ({ ...current, error: error.message })),
+    });
+    setApplyUpdate(() => updater);
+  }, []);
+
+  const openDiagnostics = () => { window.location.hash = "diagnostics"; };
+  const closeDiagnostics = () => { window.location.hash = "study"; };
+  return diagnostics
+    ? <DiagnosticsApp closeDiagnostics={closeDiagnostics} pwa={pwa} applyUpdate={applyUpdate} />
+    : <LearnerApp openDiagnostics={openDiagnostics} />;
 }
 
 declare const __APP_VERSION__: string;

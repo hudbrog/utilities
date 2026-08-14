@@ -20,6 +20,8 @@ Phase 1 domain implementation is underway under `src/domain`. It currently inclu
 
 The Phase 2 storage foundation under `src/infrastructure/db` provides the versioned learner database, curriculum reconciliation, resumable materialized queues, atomic and idempotent answer commits, introduction-ledger accounting, and validated backup/restore. Stage 0 diagnostic records remain in their separate database.
 
+The default route now runs the first child-facing multiple-choice study loop, including persisted resume/reveal state, deterministic answer options, automatic correct-answer TTS, replay, remediation, progress, and a simple chunk summary. It currently uses the clearly identified eight-word fixture in `src/generated/fixtureCurriculum.ts`; `#diagnostics` retains the Stage 0 device checks.
+
 The recovered Duome archive supplies stable English lexemes and course order, but not Russian translations. A production curriculum bundle therefore remains blocked on a curated translation input; the app does not invent translations or synonyms.
 
 The previous math trainer is preserved at [`/utilities/legacy/math-trainer.html`](https://hudbrog.github.io/utilities/legacy/math-trainer.html).
