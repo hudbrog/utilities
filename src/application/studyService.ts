@@ -1,10 +1,15 @@
 import type { ConceptDefinition } from "../domain/curriculum/model";
-import { applyReviewOutcome } from "../domain/scheduler/scheduler";
+import {
+  applyReviewOutcome,
+  markSuccessfulSpokenRecall,
+  recordSttApparentFailure,
+  recordSttMcConfirmation,
+} from "../domain/scheduler/scheduler";
 import { createLocalStudyCalendar } from "../domain/scheduler/studyCalendar";
 import { generateSession, insertRemediation, type SessionQuestion } from "../domain/sessions/sessionGenerator";
 import { fixtureCurriculum } from "../generated/fixtureCurriculum";
 import { getRecognitionConstructor } from "../infrastructure/speech/recognition";
-import { installCurriculum, setIntroducingUnit } from "../infrastructure/db/curriculumRepository";
+import { installCurriculum } from "../infrastructure/db/curriculumRepository";
 import { db } from "../infrastructure/db/database";
 import type { Attempt, PersistedSessionQuestion, StudySession } from "../infrastructure/db/model";
 import {
@@ -36,9 +41,6 @@ async function ensureDefaults(now: number): Promise<void> {
       listeningAudioRatio: 0.3,
       englishLocale: "en-US",
     });
-  }
-  if (!(await db.units.where("state").equals("introducing").first())) {
-    await setIntroducingUnit(db, fixtureCurriculum.units[0].id);
   }
 }
 
@@ -105,13 +107,25 @@ export async function loadStudy(now = Date.now()): Promise<StudySnapshot> {
       resumable = (await readResumableSession(db))!;
     }
   }
-  const concept = current ? fixtureCurriculum.concepts.find((item) => item.id === current!.conceptId) ?? null : null;
+  let concept = current ? fixtureCurriculum.concepts.find((item) => item.id === current!.conceptId) ?? null : null;
+  if (concept) {
+    const override = await db.answerOverrides.get(concept.id);
+    if (override) concept = { ...concept, acceptedEn: override.acceptedEn, acceptedRu: override.acceptedRu };
+  }
   return { ...resumable, current, concept, completed: !current };
 }
 
-export async function scoreMultipleChoice(
+export type ScoreMetadata = {
+  completionReason?: Attempt["completionReason"];
+  sttAttemptCount?: number;
+  sttTranscripts?: string[][];
+  sttAdapterStatus?: string;
+};
+
+export async function scoreAnswer(
   snapshot: StudySnapshot,
   correct: boolean,
+  metadata: ScoreMetadata = {},
   now = Date.now(),
 ): Promise<StudySnapshot> {
   const question = snapshot.current;
@@ -119,11 +133,24 @@ export async function scoreMultipleChoice(
   const state = await db.directionStates.get(`${question.conceptId}:${question.direction}`);
   if (!state) throw new Error("Не найдено состояние слова");
   const isRemediation = question.kind === "remediation";
-  const stateAfter = isRemediation ? state : applyReviewOutcome(state, correct ? "success" : "failure", now, calendar);
+  let stateAfter = isRemediation ? state : applyReviewOutcome(state, correct ? "success" : "failure", now, calendar);
+  if (!isRemediation && question.exerciseType.startsWith("stt_") && correct) {
+    stateAfter = markSuccessfulSpokenRecall(stateAfter, now);
+  }
+  if (!isRemediation && question.exerciseType.startsWith("stt_") && !correct && metadata.completionReason === "third_stt_mismatch") {
+    stateAfter = recordSttApparentFailure(stateAfter, now);
+  }
+  if (isRemediation && question.exerciseType.startsWith("mc_") && correct) {
+    stateAfter = recordSttMcConfirmation(stateAfter, now);
+  }
   const attempt: Attempt = {
     id: crypto.randomUUID(), conceptId: question.conceptId, direction: question.direction,
     exerciseType: question.exerciseType, occurredAt: now, outcome: correct ? "correct" : "incorrect",
-    completionReason: "answer", sttAttemptCount: 0, sttTranscripts: [], stageBefore: state.stage,
+    completionReason: metadata.completionReason ?? "answer",
+    sttAttemptCount: metadata.sttAttemptCount ?? 0,
+    sttTranscripts: metadata.sttTranscripts ?? [],
+    sttAdapterStatus: metadata.sttAdapterStatus,
+    stageBefore: state.stage,
     stageAfter: stateAfter.stage, isRemediationRetry: isRemediation, sessionId: question.sessionId, questionId: question.id,
   };
 
@@ -146,7 +173,7 @@ export async function scoreMultipleChoice(
   }
   await commitAnswer(db, {
     attempt,
-    directionStateAfter: isRemediation ? undefined : stateAfter,
+    directionStateAfter: isRemediation && stateAfter === state ? undefined : stateAfter,
     dateKey: calendar.dateKey(now),
     utcOffsetMinutes: new Date(now).getTimezoneOffset(),
     remediation,

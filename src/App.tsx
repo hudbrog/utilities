@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { LearnerApp } from "./features/study/LearnerApp";
+import { ParentApp } from "./features/parent/ParentApp";
 import { GateChecklist } from "./features/diagnostics/GateChecklist";
 import {
   SpeechTestCard,
@@ -278,12 +279,12 @@ function DiagnosticsApp({
 }
 
 export default function App() {
-  const [diagnostics, setDiagnostics] = useState(window.location.hash === "#diagnostics");
+  const [route, setRoute] = useState(window.location.hash.slice(1) || "study");
   const [pwa, setPwa] = useState<PwaState>({ offlineReady: false, needRefresh: false });
   const [applyUpdate, setApplyUpdate] = useState<((reloadPage?: boolean) => Promise<void>) | null>(null);
 
   useEffect(() => {
-    const syncRoute = () => setDiagnostics(window.location.hash === "#diagnostics");
+    const syncRoute = () => setRoute(window.location.hash.slice(1) || "study");
     window.addEventListener("hashchange", syncRoute);
     return () => window.removeEventListener("hashchange", syncRoute);
   }, []);
@@ -300,10 +301,15 @@ export default function App() {
   }, []);
 
   const openDiagnostics = () => { window.location.hash = "diagnostics"; };
+  const openParent = () => { window.location.hash = "parent"; };
   const closeDiagnostics = () => { window.location.hash = "study"; };
-  return diagnostics
-    ? <DiagnosticsApp closeDiagnostics={closeDiagnostics} pwa={pwa} applyUpdate={applyUpdate} />
-    : <LearnerApp openDiagnostics={openDiagnostics} />;
+  if (route === "diagnostics") {
+    return <DiagnosticsApp closeDiagnostics={openParent} pwa={pwa} applyUpdate={applyUpdate} />;
+  }
+  if (route === "parent") {
+    return <ParentApp close={closeDiagnostics} openDiagnostics={openDiagnostics} />;
+  }
+  return <LearnerApp openDiagnostics={openParent} />;
 }
 
 declare const __APP_VERSION__: string;

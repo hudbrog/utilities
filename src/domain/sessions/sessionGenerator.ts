@@ -84,7 +84,11 @@ export function generateSession(input: SessionGenerationInput): SessionQuestion[
     id: `review:${state.key}`,
     conceptId: concept.id,
     direction: state.direction,
-    exerciseType: selectExerciseType(state, input.capabilities, `${input.seed}:review:${index}:${state.key}`),
+    exerciseType: selectExerciseType(
+      state,
+      { ...input.capabilities, listeningAudioUnlocked: input.capabilities.listeningAudioUnlocked || state.successfulSpokenRecall },
+      `${input.seed}:review:${index}:${state.key}`,
+    ),
     kind: "review" as const,
   }));
 

@@ -59,7 +59,7 @@ export async function presentQuestion(
   utcOffsetMinutes: number,
   now: number,
 ): Promise<PersistedSessionQuestion> {
-  return db.transaction("rw", db.sessionQuestions, db.concepts, db.conceptProgress, db.directionStates, db.dailyLedgers, async () => {
+  return db.transaction("rw", [db.sessionQuestions, db.units, db.concepts, db.conceptProgress, db.directionStates, db.dailyLedgers], async () => {
     const question = await db.sessionQuestions.get(questionId);
     if (!question || question.status !== "pending") throw new SessionStateError("Question is not pending");
     const current = await db.sessionQuestions.where("[sessionId+status]").equals([question.sessionId, "current"]).first();
@@ -83,6 +83,13 @@ export async function presentQuestion(
           ledger.quotaConsumed += 1;
           ledger.updatedAt = now;
           await db.dailyLedgers.put(ledger);
+        }
+        const unit = await db.units.get(concept.unitId);
+        if (unit) {
+          const progressRows = await db.conceptProgress.bulkGet(unit.conceptIds);
+          if (progressRows.every((item) => item?.introducedAt != null)) {
+            await db.units.put({ ...unit, state: "fully_introduced" });
+          }
         }
       }
     }

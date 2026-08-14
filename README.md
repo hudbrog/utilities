@@ -22,6 +22,8 @@ The Phase 2 storage foundation under `src/infrastructure/db` provides the versio
 
 The default route now runs the first child-facing multiple-choice study loop, including persisted resume/reveal state, deterministic answer options, automatic correct-answer TTS, replay, remediation, progress, and a simple chunk summary. It currently uses the clearly identified eight-word fixture in `src/generated/fixtureCurriculum.ts`; `#diagnostics` retains the Stage 0 device checks.
 
+The parent route (`#parent`) provides today's workload, explicit unit start/pause controls, learner settings, difficult-word inspection, directional progress and attempt history, answer overrides, STT-problem reset, and validated backup/restore. Mature study questions support the three-attempt STT flow, non-penalizing MC fallback, and directional listening unlock.
+
 The recovered Duome archive supplies stable English lexemes and course order, but not Russian translations. A production curriculum bundle therefore remains blocked on a curated translation input; the app does not invent translations or synonyms.
 
 The previous math trainer is preserved at [`/utilities/legacy/math-trainer.html`](https://hudbrog.github.io/utilities/legacy/math-trainer.html).

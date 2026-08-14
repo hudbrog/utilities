@@ -3,11 +3,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { buildMultipleChoiceOptions, type MultipleChoiceOption } from "../../domain/exercises/distractors";
 import { fixtureCurriculum } from "../../generated/fixtureCurriculum";
 import { speak } from "../../infrastructure/speech/synthesis";
+import { isAcceptedAnswer } from "../../domain/exercises/matching";
+import { listenOnce, RecognitionError } from "../../infrastructure/speech/recognition";
 import {
   goToNextQuestion,
   introducedConceptIds,
   loadStudy,
-  scoreMultipleChoice,
+  scoreAnswer,
   type StudySnapshot,
 } from "../../application/studyService";
 
@@ -47,10 +49,16 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
   const [busy, setBusy] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [audioError, setAudioError] = useState(false);
+  const [sttAttempts, setSttAttempts] = useState<string[][]>([]);
+  const [sttMessage, setSttMessage] = useState<string | null>(null);
+  const [mcFallback, setMcFallback] = useState(false);
 
   const replaceSnapshot = useCallback(async (snapshot: StudySnapshot) => {
     setSelectedId(null);
     setAudioError(false);
+    setSttAttempts([]);
+    setSttMessage(null);
+    setMcFallback(false);
     setView({ status: "ready", snapshot, options: await optionsFor(snapshot) });
   }, []);
 
@@ -59,6 +67,17 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
       .then(replaceSnapshot)
       .catch((error: unknown) => setView({ status: "error", message: messageFor(error) }));
   }, [replaceSnapshot]);
+
+  useEffect(() => {
+    if (
+      view.status === "ready" &&
+      view.snapshot.current?.status === "current" &&
+      view.snapshot.current.exerciseType.endsWith("audio")
+    ) {
+      const locale = view.snapshot.current.direction === "en-ru" ? "en-US" : "ru-RU";
+      void speak(promptText(view.snapshot), locale).catch(() => setAudioError(true));
+    }
+  }, [view]);
 
   const progress = useMemo(() => {
     if (view.status !== "ready") return { completed: 0, total: 0, mistakes: 0 };
@@ -84,12 +103,47 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
     setBusy(true);
     setSelectedId(option.conceptId);
     try {
-      const next = await scoreMultipleChoice(view.snapshot, option.correct);
+      const next = await scoreAnswer(view.snapshot, option.correct);
       await replaceSnapshot(next);
       setSelectedId(option.conceptId);
       void playAnswer(next);
     } catch (error) {
       setView({ status: "error", message: messageFor(error) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const listen = async () => {
+    if (view.status !== "ready" || busy || !view.snapshot.current || !view.snapshot.concept) return;
+    setBusy(true);
+    setSttMessage("Слушаю…");
+    try {
+      const locale = view.snapshot.current.direction === "en-ru" ? "ru-RU" : "en-US";
+      const result = await listenOnce(locale, { localOnly: false });
+      const transcripts = result.alternatives.map(({ transcript }) => transcript);
+      const history = [...sttAttempts, transcripts];
+      setSttAttempts(history);
+      const matched = transcripts.some((transcript) => isAcceptedAnswer(transcript, view.snapshot.concept!, view.snapshot.current!.direction));
+      if (matched) {
+        const scored = await scoreAnswer(view.snapshot, true, { sttAttemptCount: history.length, sttTranscripts: history });
+        await replaceSnapshot(scored);
+        void playAnswer(scored);
+      } else if (history.length >= 3) {
+        const scored = await scoreAnswer(view.snapshot, false, {
+          completionReason: "third_stt_mismatch", sttAttemptCount: history.length, sttTranscripts: history,
+        });
+        await replaceSnapshot(scored);
+        void playAnswer(scored);
+      } else if (history.length === 1) {
+        setSttMessage("Не расслышала. Попробуй ещё раз.");
+      } else {
+        setSttMessage(`Я услышала: «${transcripts[0] ?? "…"}». Попробуй ещё раз.`);
+      }
+    } catch (error) {
+      const code = error instanceof RecognitionError ? error.code : "adapter-error";
+      setSttMessage(code === "not-allowed" ? "Микрофон недоступен. Можно выбрать ответ." : "Речь сейчас не распознаётся. Попробуй ещё раз или выбери ответ.");
+      setMcFallback(true);
     } finally {
       setBusy(false);
     }
@@ -145,6 +199,8 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
   const revealed = snapshot.current?.status === "revealed";
   const correct = snapshot.current?.revealedOutcome === "correct";
   const currentNumber = Math.min(progress.completed + 1, progress.total);
+  const speechQuestion = snapshot.current?.exerciseType.startsWith("stt_") && !mcFallback;
+  const audioPrompt = snapshot.current?.exerciseType.endsWith("audio");
   return (
     <main className="study-shell">
       <section className={`study-card ${revealed ? correct ? "study-card--correct" : "study-card--incorrect" : ""}`}>
@@ -158,10 +214,19 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
 
         <div className="study-prompt">
           <p className="study-kicker">{snapshot.current?.direction === "en-ru" ? "Выбери перевод" : "Choose the translation"}</p>
-          <h1 lang={snapshot.current?.direction === "en-ru" ? "en" : "ru"}>{promptText(snapshot)}</h1>
+          {audioPrompt ? (
+            <button className="audio-prompt" onClick={() => void speak(promptText(snapshot), snapshot.current?.direction === "en-ru" ? "en-US" : "ru-RU")}>🔊<span>Послушать ещё раз</span></button>
+          ) : <h1 lang={snapshot.current?.direction === "en-ru" ? "en" : "ru"}>{promptText(snapshot)}</h1>}
         </div>
 
-        {!revealed ? (
+        {!revealed && speechQuestion ? (
+          <div className="speech-answer">
+            <button className={busy ? "microphone-button microphone-button--active" : "microphone-button"} disabled={busy} onClick={() => void listen()} aria-label="Ответить голосом">🎙</button>
+            <p aria-live="polite">{sttMessage ?? "Нажми и скажи перевод"}</p>
+            <small>Попытка {Math.min(sttAttempts.length + 1, 3)} из 3</small>
+            {sttAttempts.length > 0 && <button className="text-button" onClick={() => setMcFallback(true)}>Выбрать ответ</button>}
+          </div>
+        ) : !revealed ? (
           <div className="choice-list">
             {options.map((option) => (
               <button

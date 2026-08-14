@@ -84,7 +84,7 @@ export async function restoreBackup(db: EnglishSrsDatabase, input: unknown): Pro
   const payload = backup.payload as MutableBackupPayload;
   await db.transaction(
     "rw",
-    [db.settings, db.units, db.concepts, db.conceptProgress, db.directionStates, db.attempts, db.answerOverrides, db.dailyLedgers],
+    [db.settings, db.units, db.concepts, db.conceptProgress, db.directionStates, db.attempts, db.answerOverrides, db.dailyLedgers, db.sessions, db.sessionQuestions],
     async () => {
       const installedUnits = new Map((await db.units.toArray()).map((unit) => [unit.id, unit]));
       const installedConceptIds = new Set((await db.concepts.toCollection().primaryKeys()).map(String));
@@ -93,7 +93,7 @@ export async function restoreBackup(db: EnglishSrsDatabase, input: unknown): Pro
         .map((unit) => ({ ...installedUnits.get(unit.id)!, state: unit.state }));
       await Promise.all([
         db.settings.clear(), db.conceptProgress.clear(), db.directionStates.clear(), db.attempts.clear(),
-        db.answerOverrides.clear(), db.dailyLedgers.clear(),
+        db.answerOverrides.clear(), db.dailyLedgers.clear(), db.sessions.clear(), db.sessionQuestions.clear(),
       ]);
       await db.units.bulkPut(restoredUnits);
       await Promise.all([

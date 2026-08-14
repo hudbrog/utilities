@@ -40,6 +40,19 @@ describe("session generation", () => {
     expect(session.every(({ kind }) => kind === "review")).toBe(true);
   });
 
+  it("unlocks mature listening exercises per directional spoken recall", () => {
+    const candidate = review(0, 0, 6);
+    candidate.state.successfulSpokenRecall = true;
+    const seen = new Set<string>();
+    for (let index = 0; index < 40; index += 1) {
+      seen.add(generateSession({
+        now: 100, dueReviews: [candidate], newConcepts: [], introducedToday: 0,
+        seed: `listening-${index}`, capabilities,
+      })[0].exerciseType);
+    }
+    expect(seen.has("stt_audio")).toBe(true);
+  });
+
   it("inserts remediation three to five questions later and clamps to the end", () => {
     const session = generateSession({ now: 100, dueReviews: [review(0, 0), review(1, 1), review(2, 2), review(3, 3)], newConcepts: [], introducedToday: 0, seed: "s", capabilities });
     const remediated = insertRemediation(session, 0, session[0], "s");

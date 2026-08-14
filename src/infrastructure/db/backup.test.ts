@@ -44,4 +44,12 @@ describe("backup and restore", () => {
     await expect(restoreBackup(target, { format: "english-srs-backup", backupSchemaVersion: 99 })).rejects.toThrow();
     expect(await target.directionStates.get("dog:en-ru")).toMatchObject({ stage: 3 });
   });
+
+  it("discards an obsolete active queue during restore", async () => {
+    const backup = await createBackup(source, "0.0.1", "2026-08-14T12:00:00.000Z");
+    await target.sessions.put({ id: "old", status: "active", seed: "old", createdAt: 1, updatedAt: 1 });
+    await restoreBackup(target, backup);
+    expect(await target.sessions.count()).toBe(0);
+    expect(await target.sessionQuestions.count()).toBe(0);
+  });
 });
