@@ -24,7 +24,7 @@ The default route now runs the first child-facing multiple-choice study loop, in
 
 The parent route (`#parent`) provides today's workload, explicit unit start/pause controls, learner settings, difficult-word inspection, directional progress and attempt history, answer overrides, STT-problem reset, and validated backup/restore. Mature study questions support the three-attempt STT flow, non-penalizing MC fallback, and directional listening unlock.
 
-The recovered Duome archive supplies stable English lexemes and course order, but not Russian translations. A production curriculum bundle therefore remains blocked on a curated translation input; the app does not invent translations or synonyms.
+The recovered Duome archive supplies stable English lexemes and course order, but not Russian translations. The resumable generation, independent review, human approval, validation, and assembly workflow is documented in [`docs/curriculum/README.md`](docs/curriculum/README.md). Generated aliases are deliberately conservative and never enter the app without an approval gate.
 
 The previous math trainer is preserved at [`/utilities/legacy/math-trainer.html`](https://hudbrog.github.io/utilities/legacy/math-trainer.html).
 
