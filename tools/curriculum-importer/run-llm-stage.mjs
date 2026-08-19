@@ -4,7 +4,7 @@ import process from "node:process";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { byConceptId, parseArguments, positiveInteger, readJsonl, required, writeJsonl } from "./lib.mjs";
-import { candidateBatchSchema, reviewBatchSchema } from "./schemas.mjs";
+import { candidateBatchSchema, candidateSchema, reviewBatchSchema, reviewSchema } from "./schemas.mjs";
 
 const mode = process.argv[2];
 if (!['generate', 'review'].includes(mode)) throw new Error("First argument must be generate or review");
@@ -14,13 +14,30 @@ const outputPath = required(args, "output");
 const batchSize = positiveInteger(args["batch-size"], 20);
 const limit = args.limit === undefined ? Infinity : positiveInteger(args.limit);
 const model = args.model ?? process.env[mode === "generate" ? "OPENROUTER_GENERATION_MODEL" : "OPENROUTER_REVIEW_MODEL"] ?? "openai/gpt-5.6-luna";
-if (!process.env.OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is required");
 
 const worklist = await readJsonl(worklistPath);
 const candidates = mode === "review" ? byConceptId(await readJsonl(required(args, "candidates")), "candidates") : null;
-const saved = await readJsonl(outputPath, { optional: true });
+const schema = mode === "generate" ? candidateBatchSchema : reviewBatchSchema;
+const recordSchema = mode === "generate" ? candidateSchema : reviewSchema;
+const saved = (await readJsonl(outputPath, { optional: true })).map((record) => recordSchema.parse(record));
 const completed = byConceptId(saved, outputPath);
-let pending = worklist.filter(({ conceptId }) => !completed.has(conceptId)).slice(0, limit);
+const worklistIds = new Set(worklist.map(({ conceptId }) => conceptId));
+for (const conceptId of completed.keys()) {
+  if (!worklistIds.has(conceptId)) throw new Error(`${outputPath} contains ${conceptId}, which is not present in ${worklistPath}`);
+}
+const allPending = worklist.filter(({ conceptId }) => !completed.has(conceptId));
+if (mode === "review") {
+  for (const { conceptId } of allPending) if (!candidates.has(conceptId)) throw new Error(`Missing candidate ${conceptId}`);
+}
+const pending = allPending.slice(0, limit);
+console.log(`${mode}: ${completed.size} already complete; ${allPending.length} unprocessed; ${pending.length} scheduled this run`);
+
+if (args["dry-run"] || pending.length === 0) {
+  console.log(args["dry-run"] ? `${mode}: dry run; no API requests made` : `${mode}: nothing to process`);
+  process.exit(0);
+}
+if (!process.env.OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is required");
+
 const client = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
   baseURL: process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
@@ -39,7 +56,6 @@ for (let offset = 0; offset < pending.length; offset += batchSize) {
   const input = mode === "generate"
     ? sourceBatch
     : sourceBatch.map((source) => ({ source, candidate: candidates.get(source.conceptId) ?? (() => { throw new Error(`Missing candidate ${source.conceptId}`); })() }));
-  const schema = mode === "generate" ? candidateBatchSchema : reviewBatchSchema;
   let parsed;
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {

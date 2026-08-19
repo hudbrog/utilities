@@ -33,7 +33,11 @@ pnpm curriculum:review -- \
   --batch-size 20
 ```
 
-Both commands checkpoint after every batch and skip completed concept IDs when rerun. Use `--limit 100` for a trial. The default model is `openai/gpt-5.6-luna`; override it with `--model`, `OPENROUTER_GENERATION_MODEL`, or `OPENROUTER_REVIEW_MODEL`. For a genuinely independent audit, set a different OpenRouter model for the review pass.
+Both commands checkpoint after every successful batch. Rerunning the exact command validates the existing output, reports how many concept IDs are already complete, and sends only unprocessed records to the API. `--limit` applies to the remaining records rather than the whole worklist. Use `--limit 100` for a trial, or `--dry-run` to inspect resume counts without an API key or API requests.
+
+The output file belongs to its worklist: the command refuses unknown IDs instead of silently mixing runs. Keep separate output paths when experimenting with another source worklist or translation policy.
+
+The default model is `openai/gpt-5.6-luna`; override it with `--model`, `OPENROUTER_GENERATION_MODEL`, or `OPENROUTER_REVIEW_MODEL`. For a genuinely independent audit, set a different OpenRouter model for the review pass.
 
 The adapter defaults to `https://openrouter.ai/api/v1` and requires providers to support the structured-output parameters used by the pipeline. Optional configuration:
 

@@ -1,6 +1,6 @@
-import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
 
 export function parseArguments(values) {
   const parsed = {};
@@ -54,13 +54,24 @@ export async function readJsonl(path, { optional = false } = {}) {
 }
 
 export async function writeJson(path, value) {
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  await writeFileAtomically(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
 export async function writeJsonl(path, records) {
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, records.length ? `${records.map((record) => JSON.stringify(record)).join("\n")}\n` : "", "utf8");
+  await writeFileAtomically(path, records.length ? `${records.map((record) => JSON.stringify(record)).join("\n")}\n` : "");
+}
+
+async function writeFileAtomically(path, content) {
+  const directory = dirname(path);
+  await mkdir(directory, { recursive: true });
+  const temporaryPath = join(directory, `.${basename(path)}.${process.pid}.${randomUUID()}.tmp`);
+  try {
+    await writeFile(temporaryPath, content, "utf8");
+    await rename(temporaryPath, path);
+  } catch (error) {
+    await rm(temporaryPath, { force: true });
+    throw error;
+  }
 }
 
 export function normalizeText(value, locale = "en") {
