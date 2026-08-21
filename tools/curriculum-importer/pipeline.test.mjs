@@ -29,6 +29,19 @@ test("builds, validates, and assembles an approved bundle", async () => {
   const approval = JSON.parse(await readFile(approved, "utf8"));
   approval.records[source.conceptId].reviewStatus = "approved";
   await writeFile(approved, JSON.stringify(approval));
+  const reviewPackage = join(directory, "curriculum-review.json");
+  const approvedCopy = join(directory, "approved-copy.json");
+  await run("./build-review-package.mjs", [
+    "--worklist", worklist, "--manifest", manifest, "--approved", approved,
+    "--output", reviewPackage, "--approved-copy", approvedCopy, "--generated-at", "2026-08-21T12:00:00.000Z",
+  ]);
+  const reviewPackageData = JSON.parse(await readFile(reviewPackage, "utf8"));
+  expect(reviewPackageData).toMatchObject({
+    generatedAt: "2026-08-21T12:00:00.000Z",
+    units: [{ conceptIds: [source.conceptId], reviewFingerprint: expect.any(String) }],
+    proposals: [{ conceptId: source.conceptId, initialReviewStatus: "approved", proposalFingerprint: expect.any(String) }],
+  });
+  expect(JSON.parse(await readFile(approvedCopy, "utf8"))).toEqual(approval);
   await run("./validate-curriculum.mjs", ["--worklist", worklist, "--approved", approved, "--require-approved"]);
   const bundle = join(directory, "bundle.json");
   await run("./assemble-curriculum.mjs", ["--worklist", worklist, "--manifest", manifest, "--approved", approved, "--output", bundle]);

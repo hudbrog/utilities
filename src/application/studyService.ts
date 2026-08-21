@@ -7,9 +7,8 @@ import {
 } from "../domain/scheduler/scheduler";
 import { createLocalStudyCalendar } from "../domain/scheduler/studyCalendar";
 import { generateSession, insertRemediation, type SessionQuestion } from "../domain/sessions/sessionGenerator";
-import { fixtureCurriculum } from "../generated/fixtureCurriculum";
 import { getRecognitionConstructor } from "../infrastructure/speech/recognition";
-import { installCurriculum } from "../infrastructure/db/curriculumRepository";
+import { initializeCurriculumReview } from "../infrastructure/db/curriculumReviewRepository";
 import { db } from "../infrastructure/db/database";
 import type { Attempt, PersistedSessionQuestion, StudySession } from "../infrastructure/db/model";
 import {
@@ -28,10 +27,11 @@ export type StudySnapshot = {
   current: PersistedSessionQuestion | null;
   concept: ConceptDefinition | null;
   completed: boolean;
+  emptyReason?: "no-curriculum" | "no-work";
 };
 
 async function ensureDefaults(now: number): Promise<void> {
-  await installCurriculum(db, fixtureCurriculum, now);
+  await initializeCurriculumReview(db, now);
   if (!(await db.settings.get("settings"))) {
     await db.settings.put({
       id: "settings",
@@ -90,9 +90,10 @@ export async function loadStudy(now = Date.now()): Promise<StudySnapshot> {
   if (!resumable) {
     const created = await createNextSession(now);
     if (!created) {
+      const hasCurriculum = (await db.units.count()) > 0;
       return {
         session: { id: "no-work", status: "completed", seed: calendar.dateKey(now), createdAt: now, updatedAt: now },
-        questions: [], current: null, concept: null, completed: true,
+        questions: [], current: null, concept: null, completed: true, emptyReason: hasCurriculum ? "no-work" : "no-curriculum",
       };
     }
     resumable = await readResumableSession(db);
@@ -107,7 +108,7 @@ export async function loadStudy(now = Date.now()): Promise<StudySnapshot> {
       resumable = (await readResumableSession(db))!;
     }
   }
-  let concept = current ? fixtureCurriculum.concepts.find((item) => item.id === current!.conceptId) ?? null : null;
+  let concept = current ? await db.concepts.get(current.conceptId) ?? null : null;
   if (concept) {
     const override = await db.answerOverrides.get(concept.id);
     if (override) concept = { ...concept, acceptedEn: override.acceptedEn, acceptedRu: override.acceptedRu };
@@ -195,4 +196,12 @@ export async function goToNextQuestion(snapshot: StudySnapshot, now = Date.now()
 
 export async function introducedConceptIds(): Promise<Set<string>> {
   return new Set((await db.conceptProgress.toArray()).filter((item) => item.introducedAt !== null).map((item) => item.conceptId));
+}
+
+export async function activeCurriculum(): Promise<{ concepts: ConceptDefinition[]; units: import("../domain/curriculum/model").UnitDefinition[] }> {
+  const [concepts, units] = await Promise.all([
+    db.concepts.filter((concept) => !concept.retired).toArray(),
+    db.units.orderBy("number").toArray(),
+  ]);
+  return { concepts, units };
 }

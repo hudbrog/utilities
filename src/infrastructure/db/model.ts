@@ -53,6 +53,22 @@ export type AnswerOverride = {
   updatedAt: number;
 };
 
+export type CurriculumReviewDecision = {
+  conceptId: string;
+  proposalFingerprint: string;
+  status: "approved" | "edited" | "excluded" | "deferred";
+  ru: string;
+  acceptedEn: string[];
+  acceptedRu: string[];
+  updatedAt: number;
+};
+
+export type CurriculumReviewUnit = {
+  unitId: string;
+  reviewFingerprint: string;
+  approvedAt: number;
+};
+
 export type DailyLedger = {
   dateKey: string;
   utcOffsetMinutes: number;
@@ -91,4 +107,6 @@ export type MutableBackupPayload = {
   attempts: Attempt[];
   answerOverrides: AnswerOverride[];
   dailyLedgers: DailyLedger[];
+  curriculumReviewDecisions: CurriculumReviewDecision[];
+  curriculumReviewUnits: CurriculumReviewUnit[];
 };

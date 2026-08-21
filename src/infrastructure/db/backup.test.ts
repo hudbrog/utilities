@@ -32,11 +32,15 @@ describe("backup and restore", () => {
     });
     await source.directionStates.put(makeState("cat", "ru-en", 4, { nextDueAt: 123 }));
     await source.answerOverrides.put({ conceptId: "cat", acceptedEn: ["kitty"], acceptedRu: ["кот"], updatedAt: 5 });
+    await source.curriculumReviewDecisions.put({ conceptId: "cat", proposalFingerprint: "proposal-1", status: "edited", ru: "кот", acceptedEn: ["kitty"], acceptedRu: [], updatedAt: 6 });
+    await source.curriculumReviewUnits.put({ unitId: "unit-1", reviewFingerprint: "review-fingerprint", approvedAt: 7 });
     const backup = await createBackup(source, "0.0.1", "2026-08-14T12:00:00.000Z");
     await restoreBackup(target, JSON.parse(JSON.stringify(backup)));
     expect(await target.settings.toArray()).toEqual(await source.settings.toArray());
     expect(await target.directionStates.toArray()).toEqual(await source.directionStates.toArray());
     expect(await target.answerOverrides.toArray()).toEqual(await source.answerOverrides.toArray());
+    expect(await target.curriculumReviewDecisions.toArray()).toEqual(await source.curriculumReviewDecisions.toArray());
+    expect(await target.curriculumReviewUnits.toArray()).toEqual(await source.curriculumReviewUnits.toArray());
   });
 
   it("validates before opening a write transaction", async () => {

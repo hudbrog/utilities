@@ -12,6 +12,8 @@ import type {
   LearnerSettings,
   PersistedSessionQuestion,
   StudySession,
+  CurriculumReviewDecision,
+  CurriculumReviewUnit,
 } from "./model";
 
 export class EnglishSrsDatabase extends Dexie {
@@ -26,6 +28,8 @@ export class EnglishSrsDatabase extends Dexie {
   dailyLedgers!: EntityTable<DailyLedger, "dateKey">;
   sessions!: EntityTable<StudySession, "id">;
   sessionQuestions!: EntityTable<PersistedSessionQuestion, "id">;
+  curriculumReviewDecisions!: EntityTable<CurriculumReviewDecision, "conceptId">;
+  curriculumReviewUnits!: EntityTable<CurriculumReviewUnit, "unitId">;
 
   constructor(name = "english-srs-v1") {
     super(name);
@@ -41,6 +45,21 @@ export class EnglishSrsDatabase extends Dexie {
       dailyLedgers: "dateKey, updatedAt",
       sessions: "id, status, createdAt, updatedAt",
       sessionQuestions: "id, [sessionId+position], [sessionId+status], status",
+    });
+    this.version(2).stores({
+      appMeta: "key, updatedAt",
+      settings: "id",
+      units: "id, number, state",
+      concepts: "id, unitId, [unitId+order], retired",
+      conceptProgress: "conceptId, introducedAt, skipped, retired",
+      directionStates: "key, nextDueAt, [direction+nextDueAt], conceptId",
+      attempts: "id, conceptId, occurredAt, sessionId, questionId",
+      answerOverrides: "conceptId, updatedAt",
+      dailyLedgers: "dateKey, updatedAt",
+      sessions: "id, status, createdAt, updatedAt",
+      sessionQuestions: "id, [sessionId+position], [sessionId+status], status",
+      curriculumReviewDecisions: "conceptId, status, updatedAt",
+      curriculumReviewUnits: "unitId, approvedAt",
     });
   }
 }

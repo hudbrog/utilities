@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { buildMultipleChoiceOptions, type MultipleChoiceOption } from "../../domain/exercises/distractors";
-import { fixtureCurriculum } from "../../generated/fixtureCurriculum";
 import { speak } from "../../infrastructure/speech/synthesis";
 import { isAcceptedAnswer } from "../../domain/exercises/matching";
 import { listenOnce, RecognitionError } from "../../infrastructure/speech/recognition";
 import {
   goToNextQuestion,
+  activeCurriculum,
   introducedConceptIds,
   loadStudy,
   scoreAnswer,
@@ -34,11 +34,12 @@ function promptText(snapshot: StudySnapshot): string {
 
 async function optionsFor(snapshot: StudySnapshot): Promise<MultipleChoiceOption[]> {
   if (!snapshot.current || !snapshot.concept || snapshot.current.status === "revealed") return [];
+  const curriculum = await activeCurriculum();
   return buildMultipleChoiceOptions({
     target: snapshot.concept,
     direction: snapshot.current.direction,
-    concepts: fixtureCurriculum.concepts,
-    units: fixtureCurriculum.units,
+    concepts: curriculum.concepts,
+    units: curriculum.units,
     introducedConceptIds: await introducedConceptIds(),
     seed: `${snapshot.session.seed}:${snapshot.current.id}`,
   });
@@ -179,18 +180,20 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
 
   const { snapshot, options } = view;
   if (snapshot.completed) {
+    const needsCurriculum = snapshot.emptyReason === "no-curriculum";
     return (
       <main className="study-shell">
         <section className="study-card study-card--summary">
           <div className="summary-check" aria-hidden="true">✓</div>
-          <p className="study-kicker">Занятие закончено</p>
-          <h1>Готово!</h1>
+          <p className="study-kicker">{needsCurriculum ? "Нужен взрослый" : "Занятие закончено"}</p>
+          <h1>{needsCurriculum ? "Подготовьте первый блок" : "Готово!"}</h1>
+          {needsCurriculum && <p>Сначала взрослый должен проверить слова в разделе курса.</p>}
           <div className="summary-stats">
             <div><strong>{progress.total}</strong><span>заданий</span></div>
             <div><strong>{Math.max(0, progress.total - progress.mistakes)}</strong><span>сразу правильно</span></div>
             <div><strong>{progress.mistakes}</strong><span>повторили</span></div>
           </div>
-          <button className="text-button diagnostics-link" onClick={openDiagnostics}>Диагностика для взрослого</button>
+          <button className={needsCurriculum ? "button button--primary" : "text-button diagnostics-link"} onClick={openDiagnostics}>{needsCurriculum ? "Открыть раздел для взрослого" : "Диагностика для взрослого"}</button>
         </section>
       </main>
     );
