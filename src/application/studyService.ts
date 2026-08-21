@@ -8,7 +8,7 @@ import {
 import { createLocalStudyCalendar } from "../domain/scheduler/studyCalendar";
 import { generateSession, insertRemediation, type SessionQuestion } from "../domain/sessions/sessionGenerator";
 import { getRecognitionConstructor } from "../infrastructure/speech/recognition";
-import { initializeCurriculumReview } from "../infrastructure/db/curriculumReviewRepository";
+import { initializeCurriculumReview, loadDistractorCurriculum } from "../infrastructure/db/curriculumReviewRepository";
 import { db } from "../infrastructure/db/database";
 import type { Attempt, PersistedSessionQuestion, StudySession } from "../infrastructure/db/model";
 import {
@@ -198,10 +198,6 @@ export async function introducedConceptIds(): Promise<Set<string>> {
   return new Set((await db.conceptProgress.toArray()).filter((item) => item.introducedAt !== null).map((item) => item.conceptId));
 }
 
-export async function activeCurriculum(): Promise<{ concepts: ConceptDefinition[]; units: import("../domain/curriculum/model").UnitDefinition[] }> {
-  const [concepts, units] = await Promise.all([
-    db.concepts.filter((concept) => !concept.retired).toArray(),
-    db.units.orderBy("number").toArray(),
-  ]);
-  return { concepts, units };
+export async function distractorCurriculum(): Promise<{ concepts: ConceptDefinition[]; units: import("../domain/curriculum/model").UnitDefinition[] }> {
+  return loadDistractorCurriculum(db);
 }

@@ -6,7 +6,7 @@ import { isAcceptedAnswer } from "../../domain/exercises/matching";
 import { listenOnce, RecognitionError } from "../../infrastructure/speech/recognition";
 import {
   goToNextQuestion,
-  activeCurriculum,
+  distractorCurriculum,
   introducedConceptIds,
   loadStudy,
   scoreAnswer,
@@ -34,7 +34,7 @@ function promptText(snapshot: StudySnapshot): string {
 
 async function optionsFor(snapshot: StudySnapshot): Promise<MultipleChoiceOption[]> {
   if (!snapshot.current || !snapshot.concept || snapshot.current.status === "revealed") return [];
-  const curriculum = await activeCurriculum();
+  const curriculum = await distractorCurriculum();
   return buildMultipleChoiceOptions({
     target: snapshot.concept,
     direction: snapshot.current.direction,

@@ -24,7 +24,7 @@ The study loop includes persisted resume/reveal state, deterministic answer opti
 
 The parent route (`#parent`) provides today's workload, learner settings, difficult-word inspection, directional progress and attempt history, answer overrides, STT-problem reset, and validated backup/restore. It also exposes the production curriculum one unit at a time: translations can be accepted, edited, excluded, exported, and approved before a unit is allowed into learner sessions. Review decisions and unit approvals survive app restarts and are included in backups.
 
-The committed seed contains 1,372 LLM-reviewed proposals across 62 Duome-derived units. The resumable generation, independent review, incremental parent approval, validation, and assembly workflow is documented in [`docs/curriculum/README.md`](docs/curriculum/README.md). Unreviewed proposals are never used as learner answers or distractors.
+The committed seed contains 1,372 LLM-reviewed proposals across 62 Duome-derived units. The resumable generation, independent review, incremental parent approval, validation, and assembly workflow is documented in [`docs/curriculum/README.md`](docs/curriculum/README.md). Unreviewed proposals are never question targets or correct answers, but non-excluded proposals may safely enlarge the multiple-choice distractor pool.
 
 The previous math trainer is preserved at [`/utilities/legacy/math-trainer.html`](https://hudbrog.github.io/utilities/legacy/math-trainer.html).
 

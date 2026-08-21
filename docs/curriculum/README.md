@@ -86,7 +86,7 @@ Open `#parent`, choose **Курс**, and review one unit at a time. The parent c
 - start or pause new words only after unit approval;
 - export the accumulated decisions as `translations.approved.json`.
 
-Only approved units are materialized into the learner database. Unresolved proposals are unavailable to sessions and distractor generation. Local decisions and unit approvals are included in the normal learner backup.
+Only approved units are materialized into the learner database and may become question targets. Non-excluded proposals from unapproved units may appear only as wrong multiple-choice options; answer-overlap filtering prevents them from duplicating the correct answer. Local decisions and unit approvals are included in the normal learner backup.
 
 To fold exported decisions back into the repository, replace the seed deliberately, rebuild `public/curriculum-review.json`, run the checks below, and commit both files together.
 

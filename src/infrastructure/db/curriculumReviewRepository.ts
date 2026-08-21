@@ -25,6 +25,11 @@ export type ReviewUnitSnapshot = {
   cleanCount: number;
 };
 
+export type DistractorCurriculum = {
+  concepts: ConceptDefinition[];
+  units: UnitDefinition[];
+};
+
 function effectiveWord(proposal: CurriculumReviewProposal, decision?: CurriculumReviewDecision): ReviewWord {
   const staleDecision = Boolean(decision && decision.proposalFingerprint !== proposal.proposalFingerprint);
   if (decision && !staleDecision) {
@@ -166,7 +171,34 @@ function toConcept(word: ReviewWord): ConceptDefinition {
   };
   if (word.proposal.partOfSpeech) concept.partOfSpeech = word.proposal.partOfSpeech;
   if (word.proposal.semanticCategory) concept.semanticCategory = word.proposal.semanticCategory;
+  if (word.proposal.unsuitableReason) concept.unsuitableReason = word.proposal.unsuitableReason;
   return concept;
+}
+
+export async function loadDistractorCurriculum(db: EnglishSrsDatabase): Promise<DistractorCurriculum> {
+  const [reviewUnits, activeConcepts, activeUnits] = await Promise.all([
+    loadReviewUnits(db),
+    db.concepts.filter((concept) => !concept.retired).toArray(),
+    db.units.orderBy("number").toArray(),
+  ]);
+  const activeById = new Map(activeConcepts.map((concept) => [concept.id, concept]));
+  const concepts = reviewUnits.flatMap(({ words }) => words
+    .filter(({ status, proposal }) => status !== "excluded" && !proposal.unsuitableReason)
+    .map((word) => activeById.get(word.proposal.conceptId) ?? toConcept(word)));
+  const packagedIds = new Set(concepts.map(({ id }) => id));
+  concepts.push(...activeConcepts.filter(({ id }) => !packagedIds.has(id)));
+
+  const units: UnitDefinition[] = reviewUnits.map(({ unit, words }) => ({
+    id: unit.id,
+    number: unit.number,
+    titleRu: unit.titleRu,
+    conceptIds: words
+      .filter(({ status, proposal }) => status !== "excluded" && !proposal.unsuitableReason)
+      .map(({ proposal }) => proposal.conceptId),
+  }));
+  const packagedUnitIds = new Set(units.map(({ id }) => id));
+  units.push(...activeUnits.filter(({ id }) => !packagedUnitIds.has(id)));
+  return { concepts, units };
 }
 
 export async function approveReviewUnit(db: EnglishSrsDatabase, unitId: string, now = Date.now()): Promise<void> {
