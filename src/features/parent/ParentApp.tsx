@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  approveCleanReviewWords,
+  approveCurriculumUnit,
+  exportCurriculumApprovals,
   exportLearnerBackup,
   importLearnerBackup,
   inspectLearnerBackup,
   loadParentSnapshot,
   pauseNewWords,
   resetWordStt,
+  reviewConcept,
   saveAnswerOverride,
   saveSettings,
   startUnit,
@@ -27,6 +31,50 @@ function splitAnswers(value: string): string[] {
 function formatDue(timestamp: number | null | undefined): string {
   if (timestamp == null) return "не назначено";
   return new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium" }).format(timestamp);
+}
+
+type ReviewWord = ParentSnapshot["reviewUnits"][number]["words"][number];
+
+function reviewStatusLabel(word: ReviewWord): string {
+  if (word.staleDecision) return "Предложение изменилось";
+  return {
+    approved: "Одобрено",
+    edited: "Исправлено",
+    excluded: "Исключено",
+    deferred: "Отложено",
+    auto_reviewed: "Проверено LLM",
+    needs_human_review: "Нужно проверить",
+  }[word.status];
+}
+
+function ReviewWordEditor({ word, close, save }: { word: ReviewWord; close: () => void; save: (values: { ru: string; acceptedEn: string[]; acceptedRu: string[] }) => Promise<void> }) {
+  const [ru, setRu] = useState(word.ru);
+  const [acceptedEn, setAcceptedEn] = useState(word.acceptedEn.join("\n"));
+  const [acceptedRu, setAcceptedRu] = useState(word.acceptedRu.join("\n"));
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="parent-modal-backdrop" role="presentation" onMouseDown={close}>
+      <section className="parent-modal" role="dialog" aria-modal="true" aria-labelledby="review-word-title" onMouseDown={(event) => event.stopPropagation()}>
+        <button className="modal-close" onClick={close} aria-label="Закрыть">×</button>
+        <p className="parent-eyebrow">Проверка перевода</p>
+        <h2 id="review-word-title">{word.proposal.en}</h2>
+        <label className="field-label">Основной перевод
+          <input value={ru} onChange={(event) => setRu(event.target.value)} />
+        </label>
+        <label className="field-label">Допустимые ответы на английском
+          <textarea value={acceptedEn} onChange={(event) => setAcceptedEn(event.target.value)} placeholder="По одному варианту на строке" />
+        </label>
+        <label className="field-label">Допустимые ответы на русском
+          <textarea value={acceptedRu} onChange={(event) => setAcceptedRu(event.target.value)} placeholder="По одному варианту на строке" />
+        </label>
+        {word.proposal.reviewNotes && <p className="review-note">{word.proposal.reviewNotes}</p>}
+        <button className="button button--primary parent-save" disabled={busy || !ru.trim()} onClick={() => {
+          setBusy(true);
+          void save({ ru: ru.trim(), acceptedEn: splitAnswers(acceptedEn), acceptedRu: splitAnswers(acceptedRu) }).finally(() => setBusy(false));
+        }}>Сохранить и одобрить</button>
+      </section>
+    </div>
+  );
 }
 
 function WordDetail({ word, close, refresh }: { word: ParentWordRow; close: () => void; refresh: () => Promise<void> }) {
@@ -92,6 +140,8 @@ export function ParentApp({ close, openDiagnostics }: { close: () => void; openD
   const [tab, setTab] = useState<Tab>("today");
   const [snapshot, setSnapshot] = useState<ParentSnapshot | null>(null);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
+  const [selectedReviewUnit, setSelectedReviewUnit] = useState<string | null>(null);
+  const [editingReviewWord, setEditingReviewWord] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const restoreInput = useRef<HTMLInputElement>(null);
@@ -111,6 +161,8 @@ export function ParentApp({ close, openDiagnostics }: { close: () => void; openD
     Object.values(word.states).some((state) => state && (state.lifetimeFailureCount > 0 || state.sttProblematic)),
   ) ?? [], [snapshot]);
   const word = snapshot?.words.find(({ concept }) => concept.id === selectedWord);
+  const reviewUnit = snapshot?.reviewUnits.find(({ unit }) => unit.id === selectedReviewUnit);
+  const reviewWord = reviewUnit?.words.find(({ proposal }) => proposal.conceptId === editingReviewWord);
 
   const updateSettings = async (patch: Partial<ParentSnapshot["settings"]>) => {
     if (!snapshot) return;
@@ -129,6 +181,29 @@ export function ParentApp({ close, openDiagnostics }: { close: () => void; openD
     anchor.click();
     URL.revokeObjectURL(url);
     setMessage("Резервная копия сохранена.");
+  };
+
+  const downloadApprovals = async () => {
+    const approvals = await exportCurriculumApprovals();
+    const blob = new Blob([JSON.stringify(approvals, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "translations.approved.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setMessage("Проверенные переводы сохранены.");
+  };
+
+  const mutateReview = async (operation: () => Promise<void>, success?: string) => {
+    try {
+      await operation();
+      await refresh();
+      if (success) setMessage(success);
+      setError(null);
+    } catch (cause) {
+      setError(errorMessage(cause));
+    }
   };
 
   const restore = async (file?: File) => {
@@ -191,19 +266,55 @@ export function ParentApp({ close, openDiagnostics }: { close: () => void; openD
 
       {tab === "course" && (
         <section className="parent-panel">
-          <p className="parent-eyebrow">Курс</p><h2>Какие слова добавлять</h2>
-          <p className="parent-muted">Новый блок начинает только взрослый. Одновременно активен один блок.</p>
-          <div className="unit-list">{snapshot.units.map((unit) => {
-            const introduced = unit.conceptIds.filter((id) => snapshot.words.find((item) => item.concept.id === id)?.progressIntroduced).length;
-            return (
-              <article key={unit.id} className={unit.state === "introducing" ? "unit-card unit-card--active" : "unit-card"}>
-                <div><span>Блок {unit.number}</span><h3>{unit.titleRu ?? unit.id}</h3><small>{introduced} / {unit.conceptIds.length} добавлено</small></div>
-                {unit.state === "introducing"
-                  ? <button className="button button--secondary" onClick={() => void pauseNewWords().then(refresh)}>Пауза</button>
-                  : <button className="button button--primary" onClick={() => void startUnit(unit.id).then(refresh)}>Начать блок</button>}
-              </article>
-            );
-          })}</div>
+          {reviewUnit ? (
+            <>
+              <button className="text-button" onClick={() => setSelectedReviewUnit(null)}>← Все блоки</button>
+              <div className="review-unit-heading">
+                <div><p className="parent-eyebrow">Блок {reviewUnit.unit.number}</p><h2>{reviewUnit.unit.titleRu ?? reviewUnit.unit.id}</h2></div>
+                <div className="review-unit-counts"><span>{reviewUnit.words.length} слов</span><strong>{reviewUnit.unresolvedCount} осталось</strong></div>
+              </div>
+              <p className="parent-muted">Проверьте отмеченные слова. Варианты без замечаний можно принять одной кнопкой.</p>
+              <div className="review-actions">
+                <button className="button button--secondary" disabled={reviewUnit.cleanCount === 0} onClick={() => void mutateReview(() => approveCleanReviewWords(reviewUnit.unit.id), "Переводы без замечаний одобрены.")}>Принять без замечаний ({reviewUnit.cleanCount})</button>
+                <button className="button button--primary" disabled={reviewUnit.unresolvedCount > 0 || Boolean(reviewUnit.approvedAt)} onClick={() => void mutateReview(() => approveCurriculumUnit(reviewUnit.unit.id), "Блок одобрен и добавлен в курс.")}>{reviewUnit.approvedAt ? "Блок одобрен" : "Одобрить блок"}</button>
+              </div>
+              <div className="review-word-list">{reviewUnit.words.map((item) => (
+                <article key={item.proposal.conceptId} className={`review-word review-word--${item.status}`}>
+                  <div className="review-word-main">
+                    <div><strong>{item.proposal.en}</strong><span>→ {item.ru}</span></div>
+                    <small>{reviewStatusLabel(item)}</small>
+                  </div>
+                  {(item.acceptedRu.length > 0 || item.acceptedEn.length > 0) && <p className="review-aliases">Варианты: {[...item.acceptedRu, ...item.acceptedEn].join(", ")}</p>}
+                  {item.proposal.reviewNotes && <p className="review-note">{item.proposal.reviewNotes}</p>}
+                  <div className="review-word-actions">
+                    {!(["approved", "edited", "excluded"] as string[]).includes(item.status) && <button className="text-button" onClick={() => void mutateReview(() => reviewConcept(item.proposal.conceptId, "approved"))}>Принять</button>}
+                    <button className="text-button" onClick={() => setEditingReviewWord(item.proposal.conceptId)}>Исправить</button>
+                    {item.status !== "excluded" && <button className="text-button review-exclude" onClick={() => void mutateReview(() => reviewConcept(item.proposal.conceptId, "excluded"))}>Исключить</button>}
+                  </div>
+                </article>
+              ))}</div>
+            </>
+          ) : (
+            <>
+              <p className="parent-eyebrow">Курс</p><h2>Проверка и добавление блоков</h2>
+              <p className="parent-muted">Непроверенные слова не используются в занятиях. Сначала одобрите блок, затем начните его.</p>
+              <div className="unit-list">{snapshot.reviewUnits.map((candidate) => {
+                const active = snapshot.units.find((unit) => unit.id === candidate.unit.id);
+                const introduced = active?.conceptIds.filter((id) => snapshot.words.find((item) => item.concept.id === id)?.progressIntroduced).length ?? 0;
+                return (
+                  <article key={candidate.unit.id} className={active?.state === "introducing" ? "unit-card unit-card--active" : "unit-card"}>
+                    <div><span>Блок {candidate.unit.number}</span><h3>{candidate.unit.titleRu ?? candidate.unit.id}</h3><small>{candidate.approvedAt ? `Одобрен · ${introduced} / ${active?.conceptIds.length ?? 0} добавлено` : `${candidate.unresolvedCount} слов осталось проверить`}</small></div>
+                    <div className="unit-card-actions">
+                      <button className="button button--secondary" onClick={() => setSelectedReviewUnit(candidate.unit.id)}>{candidate.approvedAt ? "Просмотреть" : "Проверить"}</button>
+                      {candidate.approvedAt && (active?.state === "introducing"
+                        ? <button className="button button--secondary" onClick={() => void pauseNewWords().then(refresh)}>Пауза</button>
+                        : <button className="button button--primary" onClick={() => void startUnit(candidate.unit.id).then(refresh)}>Начать блок</button>)}
+                    </div>
+                  </article>
+                );
+              })}</div>
+            </>
+          )}
         </section>
       )}
 
@@ -239,11 +350,16 @@ export function ParentApp({ close, openDiagnostics }: { close: () => void; openD
               <button className="button button--secondary" onClick={() => restoreInput.current?.click()}>Восстановить</button>
               <input ref={restoreInput} hidden type="file" accept="application/json,.json" onChange={(event) => void restore(event.target.files?.[0])} />
             </div>
+            <button className="text-button diagnostics-link" onClick={() => void downloadApprovals()}>Скачать проверенные переводы</button>
             <button className="text-button diagnostics-link" onClick={openDiagnostics}>Диагностика устройства</button>
           </section>
         </div>
       )}
       {word && <WordDetail word={word} close={() => setSelectedWord(null)} refresh={refresh} />}
+      {reviewWord && <ReviewWordEditor word={reviewWord} close={() => setEditingReviewWord(null)} save={async (values) => {
+        await mutateReview(() => reviewConcept(reviewWord.proposal.conceptId, "edited", values), "Перевод сохранён.");
+        setEditingReviewWord(null);
+      }} />}
     </main>
   );
 }

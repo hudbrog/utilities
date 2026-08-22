@@ -33,7 +33,11 @@ pnpm curriculum:review -- \
   --batch-size 20
 ```
 
-Both commands checkpoint after every batch and skip completed concept IDs when rerun. Use `--limit 100` for a trial. The default model is `openai/gpt-5.6-luna`; override it with `--model`, `OPENROUTER_GENERATION_MODEL`, or `OPENROUTER_REVIEW_MODEL`. For a genuinely independent audit, set a different OpenRouter model for the review pass.
+Both commands checkpoint after every successful batch. Rerunning the exact command validates the existing output, reports how many concept IDs are already complete, and sends only unprocessed records to the API. `--limit` applies to the remaining records rather than the whole worklist. Use `--limit 100` for a trial, or `--dry-run` to inspect resume counts without an API key or API requests.
+
+The output file belongs to its worklist: the command refuses unknown IDs instead of silently mixing runs. Keep separate output paths when experimenting with another source worklist or translation policy.
+
+The default model is `openai/gpt-5.6-luna`; override it with `--model`, `OPENROUTER_GENERATION_MODEL`, or `OPENROUTER_REVIEW_MODEL`. For a genuinely independent audit, set a different OpenRouter model for the review pass.
 
 The adapter defaults to `https://openrouter.ai/api/v1` and requires providers to support the structured-output parameters used by the pipeline. Optional configuration:
 
@@ -43,7 +47,7 @@ export OPENROUTER_HTTP_REFERER='https://github.com/hudbrog/utilities'
 export OPENROUTER_APP_TITLE='English Learning SRS Curriculum Pipeline'
 ```
 
-## 3. Human approval and validation
+## 3. Prepare the review seed
 
 ```bash
 pnpm curriculum:prepare-approval -- \
@@ -58,9 +62,37 @@ pnpm curriculum:validate -- \
   --report .curriculum/validation.json
 ```
 
-Review every `needs_human_review` record and answer-collision warning. Correct the values and set `reviewStatus` to `approved`. Run validation with `--require-approved` for the final gate. Add `--require-human` to `prepare-approval` if every record must receive explicit human approval.
+The repository keeps the first reviewed result at `curriculum/translations.approved.json`. Despite the historical filename, records may still be `auto_reviewed` or `needs_human_review`; this is the immutable proposal seed, not permission to use every word in study sessions.
 
-## 4. Assemble the application bundle
+Build the offline package consumed by the parent interface:
+
+```bash
+pnpm curriculum:review-package -- \
+  --worklist .curriculum/source.worklist.jsonl \
+  --manifest .curriculum/source.manifest.json \
+  --approved curriculum/translations.approved.json \
+  --output public/curriculum-review.json
+```
+
+The package includes a fingerprint for every proposal and unit. A changed proposal invalidates its saved word decision and its unit approval, while unrelated units stay approved. `--generated-at` can pin the metadata timestamp for reproducible builds.
+
+## 4. Review incrementally in the app
+
+Open `#parent`, choose **Курс**, and review one unit at a time. The parent can:
+
+- accept all clean `auto_reviewed` proposals in the selected unit;
+- accept, correct, exclude, or defer individual words;
+- approve a unit only after every proposal is resolved;
+- start or pause new words only after unit approval;
+- export the accumulated decisions as `translations.approved.json`.
+
+Only approved units are materialized into the learner database and may become question targets. Non-excluded proposals from unapproved units may appear only as wrong multiple-choice options; answer-overlap filtering prevents them from duplicating the correct answer. Local decisions and unit approvals are included in the normal learner backup.
+
+To fold exported decisions back into the repository, replace the seed deliberately, rebuild `public/curriculum-review.json`, run the checks below, and commit both files together.
+
+For a strict one-off data check, review every `needs_human_review` record and answer-collision warning, set accepted records to `approved`, then run validation with `--require-approved`. Add `--require-human` to `prepare-approval` if every record must receive explicit human approval.
+
+## 5. Assemble a fully approved application bundle
 
 ```bash
 pnpm curriculum:assemble -- \
@@ -70,4 +102,4 @@ pnpm curriculum:assemble -- \
   --output .curriculum/curriculum.json
 ```
 
-Assembly rejects missing, stale, or non-approved records. To adopt the hybrid policy and accept only the narrowly defined high-confidence `auto_reviewed` records as well, add `--allow-auto-reviewed`. The `.curriculum` directory is intentionally ignored; decide separately when the reviewed production bundle should be committed and wired into the app.
+Assembly rejects missing, stale, or non-approved records. To adopt the hybrid policy and accept only the narrowly defined high-confidence `auto_reviewed` records as well, add `--allow-auto-reviewed`. This strict bundle remains useful for release validation; the app itself uses the incremental review package described above.

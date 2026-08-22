@@ -1,8 +1,16 @@
 import type { Direction } from "../domain/curriculum/model";
 import { createLocalStudyCalendar } from "../domain/scheduler/studyCalendar";
-import { fixtureCurriculum } from "../generated/fixtureCurriculum";
 import { createBackup, parseBackup, restoreBackup, type BackupEnvelope } from "../infrastructure/db/backup";
-import { installCurriculum, setIntroducingUnit } from "../infrastructure/db/curriculumRepository";
+import { setIntroducingUnit } from "../infrastructure/db/curriculumRepository";
+import {
+  approveCleanWords,
+  approveReviewUnit,
+  exportReviewApprovals,
+  initializeCurriculumReview,
+  loadReviewUnits,
+  saveReviewDecision,
+  type ReviewUnitSnapshot,
+} from "../infrastructure/db/curriculumReviewRepository";
 import { db } from "../infrastructure/db/database";
 import type {
   AnswerOverride,
@@ -32,6 +40,7 @@ export type ParentSnapshot = {
   today: DailyLedger | null;
   dueCount: number;
   newAvailableToday: number;
+  reviewUnits: ReviewUnitSnapshot[];
 };
 
 const defaultSettings: LearnerSettings = {
@@ -44,13 +53,13 @@ const defaultSettings: LearnerSettings = {
 };
 
 async function initialize(now: number): Promise<void> {
-  await installCurriculum(db, fixtureCurriculum, now);
+  await initializeCurriculumReview(db, now);
   if (!(await db.settings.get("settings"))) await db.settings.put(defaultSettings);
 }
 
 export async function loadParentSnapshot(now = Date.now()): Promise<ParentSnapshot> {
   await initialize(now);
-  const [settings, units, concepts, progress, states, attempts, overrides, today] = await Promise.all([
+  const [settings, units, concepts, progress, states, attempts, overrides, today, reviewUnits] = await Promise.all([
     db.settings.get("settings"),
     db.units.orderBy("number").toArray(),
     db.concepts.orderBy("[unitId+order]").toArray(),
@@ -59,6 +68,7 @@ export async function loadParentSnapshot(now = Date.now()): Promise<ParentSnapsh
     db.attempts.orderBy("occurredAt").reverse().toArray(),
     db.answerOverrides.toArray(),
     db.dailyLedgers.get(calendar.dateKey(now)),
+    loadReviewUnits(db),
   ]);
   const progressById = new Map(progress.map((item) => [item.conceptId, item]));
   const overrideById = new Map(overrides.map((item) => [item.conceptId, item]));
@@ -92,6 +102,7 @@ export async function loadParentSnapshot(now = Date.now()): Promise<ParentSnapsh
     today: today ?? null,
     dueCount,
     newAvailableToday: Math.min(remainingInUnit, quotaRemaining),
+    reviewUnits,
   };
 }
 
@@ -122,6 +133,26 @@ export async function resetWordStt(conceptId: string, now = Date.now()): Promise
   await db.directionStates.bulkPut(states.map((state) => resetSttProblemHistory(state, now)));
 }
 
+export async function reviewConcept(
+  conceptId: string,
+  status: "approved" | "edited" | "excluded" | "deferred",
+  values?: { ru: string; acceptedEn: string[]; acceptedRu: string[] },
+): Promise<void> {
+  await saveReviewDecision(db, conceptId, status, values);
+}
+
+export async function approveCleanReviewWords(unitId: string): Promise<void> {
+  await approveCleanWords(db, unitId);
+}
+
+export async function approveCurriculumUnit(unitId: string): Promise<void> {
+  await approveReviewUnit(db, unitId);
+}
+
+export async function exportCurriculumApprovals(): Promise<unknown> {
+  return exportReviewApprovals(db);
+}
+
 export async function exportLearnerBackup(appVersion: string): Promise<BackupEnvelope> {
   return createBackup(db, appVersion);
 }
@@ -131,5 +162,13 @@ export function inspectLearnerBackup(input: unknown): BackupEnvelope {
 }
 
 export async function importLearnerBackup(input: unknown): Promise<void> {
-  await restoreBackup(db, input);
+  const backup = parseBackup(input);
+  await restoreBackup(db, backup);
+  const reviewUnits = await loadReviewUnits(db);
+  for (const unit of reviewUnits) {
+    if (unit.approvedAt !== null) await approveReviewUnit(db, unit.unit.id, unit.approvedAt);
+  }
+  const desiredStateById = new Map(backup.payload.unitStates.map((unit) => [unit.id, unit.state]));
+  const installed = await db.units.toArray();
+  await db.units.bulkPut(installed.map((unit) => ({ ...unit, state: desiredStateById.get(unit.id) ?? "inactive" })));
 }

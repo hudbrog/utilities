@@ -41,15 +41,30 @@ const dailyLedgerSchema = z.object({
   introducedConceptIds: z.array(z.string()), quotaConsumed: z.number().int().nonnegative(),
   questionsCompleted: z.number().int().nonnegative(), immediateMistakes: z.number().int().nonnegative(), updatedAt: z.number(),
 });
-const payloadSchema = z.object({
+const reviewDecisionSchema = z.object({
+  conceptId: z.string().min(1), proposalFingerprint: z.string().min(1),
+  status: z.enum(["approved", "edited", "excluded", "deferred"]), ru: z.string().min(1),
+  acceptedEn: z.array(z.string()), acceptedRu: z.array(z.string()), updatedAt: z.number(),
+});
+const reviewUnitSchema = z.object({
+  unitId: z.string().min(1), reviewFingerprint: z.string().min(1), approvedAt: z.number(),
+});
+const legacyPayloadSchema = z.object({
   settings: z.array(settingsSchema), unitStates: z.array(installedUnitSchema),
   conceptProgress: z.array(conceptProgressSchema), directionStates: z.array(directionStateSchema),
   attempts: z.array(attemptSchema), answerOverrides: z.array(answerOverrideSchema), dailyLedgers: z.array(dailyLedgerSchema),
 });
+const payloadSchema = legacyPayloadSchema.extend({
+  curriculumReviewDecisions: z.array(reviewDecisionSchema), curriculumReviewUnits: z.array(reviewUnitSchema),
+});
 
 export const backupEnvelopeSchema = z.object({
-  format: z.literal("english-srs-backup"), backupSchemaVersion: z.literal(1),
+  format: z.literal("english-srs-backup"), backupSchemaVersion: z.literal(2),
   exportedAt: z.iso.datetime(), appVersion: z.string().min(1), curriculumVersion: z.string(), payload: payloadSchema,
+});
+const legacyBackupEnvelopeSchema = z.object({
+  format: z.literal("english-srs-backup"), backupSchemaVersion: z.literal(1),
+  exportedAt: z.iso.datetime(), appVersion: z.string().min(1), curriculumVersion: z.string(), payload: legacyPayloadSchema,
 });
 
 export type BackupEnvelope = z.infer<typeof backupEnvelopeSchema>;
@@ -59,24 +74,32 @@ export async function createBackup(
   appVersion: string,
   exportedAt = new Date().toISOString(),
 ): Promise<BackupEnvelope> {
-  const [settings, unitStates, conceptProgress, directionStates, attempts, answerOverrides, dailyLedgers, curriculumMeta] =
+  const [settings, unitStates, conceptProgress, directionStates, attempts, answerOverrides, dailyLedgers, curriculumReviewDecisions, curriculumReviewUnits, curriculumMeta] =
     await db.transaction(
       "r",
-      [db.settings, db.units, db.conceptProgress, db.directionStates, db.attempts, db.answerOverrides, db.dailyLedgers, db.appMeta],
+      [db.settings, db.units, db.conceptProgress, db.directionStates, db.attempts, db.answerOverrides, db.dailyLedgers, db.curriculumReviewDecisions, db.curriculumReviewUnits, db.appMeta],
       () => Promise.all([
         db.settings.toArray(), db.units.toArray(), db.conceptProgress.toArray(), db.directionStates.toArray(),
-        db.attempts.toArray(), db.answerOverrides.toArray(), db.dailyLedgers.toArray(), db.appMeta.get("curriculumVersion"),
+        db.attempts.toArray(), db.answerOverrides.toArray(), db.dailyLedgers.toArray(), db.curriculumReviewDecisions.toArray(),
+        db.curriculumReviewUnits.toArray(), db.appMeta.get("curriculumVersion"),
       ]),
     );
   return backupEnvelopeSchema.parse({
-    format: "english-srs-backup", backupSchemaVersion: 1, exportedAt, appVersion,
+    format: "english-srs-backup", backupSchemaVersion: 2, exportedAt, appVersion,
     curriculumVersion: curriculumMeta?.value ?? "",
-    payload: { settings, unitStates, conceptProgress, directionStates, attempts, answerOverrides, dailyLedgers },
+    payload: { settings, unitStates, conceptProgress, directionStates, attempts, answerOverrides, dailyLedgers, curriculumReviewDecisions, curriculumReviewUnits },
   });
 }
 
 export function parseBackup(input: unknown): BackupEnvelope {
-  return backupEnvelopeSchema.parse(input);
+  const current = backupEnvelopeSchema.safeParse(input);
+  if (current.success) return current.data;
+  const legacy = legacyBackupEnvelopeSchema.parse(input);
+  return {
+    ...legacy,
+    backupSchemaVersion: 2,
+    payload: { ...legacy.payload, curriculumReviewDecisions: [], curriculumReviewUnits: [] },
+  };
 }
 
 export async function restoreBackup(db: EnglishSrsDatabase, input: unknown): Promise<void> {
@@ -84,7 +107,7 @@ export async function restoreBackup(db: EnglishSrsDatabase, input: unknown): Pro
   const payload = backup.payload as MutableBackupPayload;
   await db.transaction(
     "rw",
-    [db.settings, db.units, db.concepts, db.conceptProgress, db.directionStates, db.attempts, db.answerOverrides, db.dailyLedgers, db.sessions, db.sessionQuestions],
+    [db.settings, db.units, db.concepts, db.conceptProgress, db.directionStates, db.attempts, db.answerOverrides, db.dailyLedgers, db.sessions, db.sessionQuestions, db.curriculumReviewDecisions, db.curriculumReviewUnits],
     async () => {
       const installedUnits = new Map((await db.units.toArray()).map((unit) => [unit.id, unit]));
       const installedConceptIds = new Set((await db.concepts.toCollection().primaryKeys()).map(String));
@@ -94,6 +117,7 @@ export async function restoreBackup(db: EnglishSrsDatabase, input: unknown): Pro
       await Promise.all([
         db.settings.clear(), db.conceptProgress.clear(), db.directionStates.clear(), db.attempts.clear(),
         db.answerOverrides.clear(), db.dailyLedgers.clear(), db.sessions.clear(), db.sessionQuestions.clear(),
+        db.curriculumReviewDecisions.clear(), db.curriculumReviewUnits.clear(),
       ]);
       await db.units.bulkPut(restoredUnits);
       await Promise.all([
@@ -104,6 +128,7 @@ export async function restoreBackup(db: EnglishSrsDatabase, input: unknown): Pro
         }))),
         db.directionStates.bulkAdd(payload.directionStates), db.attempts.bulkAdd(payload.attempts),
         db.answerOverrides.bulkAdd(payload.answerOverrides), db.dailyLedgers.bulkAdd(payload.dailyLedgers),
+        db.curriculumReviewDecisions.bulkAdd(payload.curriculumReviewDecisions), db.curriculumReviewUnits.bulkAdd(payload.curriculumReviewUnits),
       ]);
     },
   );

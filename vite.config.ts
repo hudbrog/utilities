@@ -5,7 +5,7 @@ import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig({
   base: "/utilities/",
   define: {
-    __APP_VERSION__: JSON.stringify("0.0.1-stage0"),
+    __APP_VERSION__: JSON.stringify("0.1.0-curriculum-review"),
   },
   plugins: [
     react(),

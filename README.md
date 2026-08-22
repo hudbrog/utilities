@@ -6,7 +6,7 @@ Offline-first vocabulary trainer for a Russian-speaking child learning English. 
 
 ## Current state
 
-The deployed UI is still the Stage 0 diagnostic PWA. It validates the risks that must pass on the intended iPhone/iPad before the complete learner UI is built:
+The default route runs the child-facing study loop, while `#parent` provides the parent controls and `#diagnostics` retains the Stage 0 device checks. The diagnostic route validates:
 
 - installed home-screen launch;
 - complete offline app-shell caching;
@@ -16,15 +16,15 @@ The deployed UI is still the Stage 0 diagnostic PWA. It validates the risks that
 - IndexedDB persistence across relaunch, reboot, and static releases;
 - a locally saved physical-device gate checklist and downloadable JSON report.
 
-Phase 1 domain implementation is underway under `src/domain`. It currently includes the validated curriculum contract, exact answer normalization, deterministic distractors and exercise policy, the 0–7 SRS scheduler, local-calendar due-date arithmetic, STT-problem evidence tracking, deterministic session generation, backlog suppression, and in-session remediation insertion. These modules are deliberately independent of React, Dexie, browser APIs, and the wall clock.
+The domain layer includes the validated curriculum contract, exact answer normalization, deterministic distractors and exercise policy, the 0–7 SRS scheduler, local-calendar due-date arithmetic, STT-problem evidence tracking, deterministic session generation, backlog suppression, and in-session remediation insertion. These modules are deliberately independent of React, Dexie, browser APIs, and the wall clock.
 
 The Phase 2 storage foundation under `src/infrastructure/db` provides the versioned learner database, curriculum reconciliation, resumable materialized queues, atomic and idempotent answer commits, introduction-ledger accounting, and validated backup/restore. Stage 0 diagnostic records remain in their separate database.
 
-The default route now runs the first child-facing multiple-choice study loop, including persisted resume/reveal state, deterministic answer options, automatic correct-answer TTS, replay, remediation, progress, and a simple chunk summary. It currently uses the clearly identified eight-word fixture in `src/generated/fixtureCurriculum.ts`; `#diagnostics` retains the Stage 0 device checks.
+The study loop includes persisted resume/reveal state, deterministic answer options, automatic correct-answer TTS, replay, remediation, progress, a simple chunk summary, and the mature three-attempt STT flow with non-penalizing multiple-choice fallback.
 
-The parent route (`#parent`) provides today's workload, explicit unit start/pause controls, learner settings, difficult-word inspection, directional progress and attempt history, answer overrides, STT-problem reset, and validated backup/restore. Mature study questions support the three-attempt STT flow, non-penalizing MC fallback, and directional listening unlock.
+The parent route (`#parent`) provides today's workload, learner settings, difficult-word inspection, directional progress and attempt history, answer overrides, STT-problem reset, and validated backup/restore. It also exposes the production curriculum one unit at a time: translations can be accepted, edited, excluded, exported, and approved before a unit is allowed into learner sessions. Review decisions and unit approvals survive app restarts and are included in backups.
 
-The recovered Duome archive supplies stable English lexemes and course order, but not Russian translations. The resumable generation, independent review, human approval, validation, and assembly workflow is documented in [`docs/curriculum/README.md`](docs/curriculum/README.md). Generated aliases are deliberately conservative and never enter the app without an approval gate.
+The committed seed contains 1,372 LLM-reviewed proposals across 62 Duome-derived units. The resumable generation, independent review, incremental parent approval, validation, and assembly workflow is documented in [`docs/curriculum/README.md`](docs/curriculum/README.md). Unreviewed proposals are never question targets or correct answers, but non-excluded proposals may safely enlarge the multiple-choice distractor pool.
 
 The previous math trainer is preserved at [`/utilities/legacy/math-trainer.html`](https://hudbrog.github.io/utilities/legacy/math-trainer.html).
 

@@ -15,6 +15,7 @@
     "curriculum:generate": "node tools/curriculum-importer/run-llm-stage.mjs generate",
     "curriculum:review": "node tools/curriculum-importer/run-llm-stage.mjs review",
     "curriculum:prepare-approval": "node tools/curriculum-importer/prepare-approval.mjs",
+    "curriculum:review-package": "node tools/curriculum-importer/build-review-package.mjs",
     "curriculum:validate": "node tools/curriculum-importer/validate-curriculum.mjs",
     "curriculum:assemble": "node tools/curriculum-importer/assemble-curriculum.mjs"
   },
