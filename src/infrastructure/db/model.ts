@@ -1,6 +1,7 @@
 import type { ConceptDefinition, Direction, UnitDefinition } from "../../domain/curriculum/model";
 import type { ExerciseType } from "../../domain/exercises/policy";
 import type { DirectionState } from "../../domain/scheduler/model";
+import type { FsrsRating, ReviewCompletionMode } from "../../domain/scheduler/model";
 
 export type AppMetaRecord = { key: string; value: string; updatedAt: number };
 
@@ -39,6 +40,15 @@ export type Attempt = {
   sttAttemptCount: number;
   sttTranscripts: string[][];
   sttAdapterStatus?: string;
+  completionMode: ReviewCompletionMode;
+  schedulerVersion?: "fsrs-6";
+  rating?: FsrsRating;
+  stabilityBefore?: number | null;
+  difficultyBefore?: number | null;
+  retrievabilityBefore?: number | null;
+  stabilityAfter?: number | null;
+  difficultyAfter?: number | null;
+  scheduledDaysAfter?: number;
   stageBefore: number;
   stageAfter: number;
   isRemediationRetry: boolean;
@@ -95,6 +105,7 @@ export type PersistedSessionQuestion = {
   direction: Direction;
   exerciseType: ExerciseType;
   kind: "review" | "introduction" | "remediation";
+  sourceExerciseType?: ExerciseType;
   status: "pending" | "current" | "revealed" | "completed";
   revealedOutcome?: "correct" | "incorrect";
 };

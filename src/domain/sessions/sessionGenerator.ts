@@ -3,6 +3,8 @@ import type { ExerciseCapabilities, ExerciseType } from "../exercises/policy";
 import { selectExerciseType } from "../exercises/policy";
 import { createSeededRandom, shuffleWith } from "../random";
 import type { DirectionState } from "../scheduler/model";
+import { retrievabilityAt } from "../scheduler/scheduler";
+import { createLocalStudyCalendar } from "../scheduler/studyCalendar";
 
 export type ReviewCandidate = {
   concept: ConceptDefinition;
@@ -15,6 +17,7 @@ export type SessionQuestion = {
   direction: Direction;
   exerciseType: ExerciseType;
   kind: "review" | "introduction" | "remediation";
+  sourceExerciseType?: ExerciseType;
 };
 
 export type SessionGenerationInput = {
@@ -29,10 +32,14 @@ export type SessionGenerationInput = {
   capabilities: ExerciseCapabilities;
 };
 
-function compareDue(left: ReviewCandidate, right: ReviewCandidate): number {
+function compareDue(left: ReviewCandidate, right: ReviewCandidate, now: number): number {
+  const calendar = createLocalStudyCalendar();
+  const leftRetrievability = retrievabilityAt(left.state, now, calendar) ?? 0;
+  const rightRetrievability = retrievabilityAt(right.state, now, calendar) ?? 0;
+  const bothUseFsrs = left.state.scheduler === "fsrs-6" && right.state.scheduler === "fsrs-6";
   return (
+    (bothUseFsrs ? leftRetrievability - rightRetrievability : 0) ||
     (left.state.nextDueAt ?? Number.POSITIVE_INFINITY) - (right.state.nextDueAt ?? Number.POSITIVE_INFINITY) ||
-    left.state.stage - right.state.stage ||
     left.concept.id.localeCompare(right.concept.id) ||
     left.state.direction.localeCompare(right.state.direction)
   );
@@ -69,7 +76,7 @@ export function generateSession(input: SessionGenerationInput): SessionQuestion[
 
   const due = input.dueReviews
     .filter((candidate) => candidate.state.nextDueAt !== null && candidate.state.nextDueAt <= input.now)
-    .sort(compareDue);
+    .sort((left, right) => compareDue(left, right, input.now));
   const quotaRemaining = Math.max(0, dailyQuota - input.introducedToday);
   const introductionCapacity = Math.floor(chunkSize / 2);
   const newCount = due.length > backlogThreshold ? 0 : Math.min(quotaRemaining, introductionCapacity, input.newConcepts.length);
@@ -92,7 +99,7 @@ export function generateSession(input: SessionGenerationInput): SessionQuestion[
     kind: "review" as const,
   }));
 
-  return interleave(reviews, introductions).slice(0, chunkSize);
+  return interleave<SessionQuestion>(reviews, introductions).slice(0, chunkSize);
 }
 
 export function insertRemediation(
@@ -111,6 +118,7 @@ export function insertRemediation(
     ...failedQuestion,
     id: `remediation:${failedQuestion.id}:${failedQuestionIndex}`,
     exerciseType: failedQuestion.exerciseType.endsWith("audio") ? "mc_audio" : "mc_text",
+    sourceExerciseType: failedQuestion.sourceExerciseType ?? failedQuestion.exerciseType,
     kind: "remediation",
   };
   const result = [...questions];

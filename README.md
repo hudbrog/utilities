@@ -16,7 +16,7 @@ The default route runs the child-facing study loop, while `#parent` provides the
 - IndexedDB persistence across relaunch, reboot, and static releases;
 - a locally saved physical-device gate checklist and downloadable JSON report.
 
-The domain layer includes the validated curriculum contract, exact answer normalization, deterministic distractors and exercise policy, the 0–7 SRS scheduler, local-calendar due-date arithmetic, STT-problem evidence tracking, deterministic session generation, backlog suppression, and in-session remediation insertion. These modules are deliberately independent of React, Dexie, browser APIs, and the wall clock.
+The domain layer includes the validated curriculum contract, exact answer normalization, deterministic distractors and exercise policy, an automatic FSRS-6 scheduler, local-calendar due-date arithmetic, STT-problem evidence tracking, deterministic session generation, backlog suppression, and in-session remediation insertion. FSRS runs independently per translation direction at 90% desired retention; its behavior and lazy migration are documented in [`docs/scheduling.md`](docs/scheduling.md). These modules are deliberately independent of React, Dexie, browser APIs, and the wall clock.
 
 The Phase 2 storage foundation under `src/infrastructure/db` provides the versioned learner database, curriculum reconciliation, resumable materialized queues, atomic and idempotent answer commits, introduction-ledger accounting, and validated backup/restore. Stage 0 diagnostic records remain in their separate database.
 

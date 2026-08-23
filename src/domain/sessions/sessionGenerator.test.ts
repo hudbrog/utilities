@@ -20,6 +20,22 @@ describe("session generation", () => {
     expect(session.map(({ conceptId }) => conceptId)).toEqual(["dog", "cat"]);
   });
 
+  it("prioritizes the due direction with the lowest retrievability", () => {
+    const strong = review(0, 0);
+    strong.state = { ...strong.state, stability: 20, lastReviewAt: 0 };
+    const weak = review(1, 0);
+    weak.state = { ...weak.state, stability: 2, lastReviewAt: 0 };
+    const session = generateSession({
+      now: 10 * 86_400_000,
+      dueReviews: [strong, weak],
+      newConcepts: [],
+      introducedToday: 0,
+      seed: "retrievability",
+      capabilities,
+    });
+    expect(session.map(({ conceptId }) => conceptId)).toEqual(["dog", "cat"]);
+  });
+
   it("introduces both directions, honors quota, and is deterministic", () => {
     const input = {
       now: 100, dueReviews: [review(4, 0)], newConcepts: concepts.slice(0, 3), introducedToday: 4,
