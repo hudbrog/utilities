@@ -36,6 +36,21 @@ describe("session generation", () => {
     expect(session.map(({ conceptId }) => conceptId)).toEqual(["dog", "cat"]);
   });
 
+  it("separates opposite directions of the same concept when possible", () => {
+    const dueReviews: ReviewCandidate[] = [
+      { concept: concepts[0], state: makeState("cat", "en-ru", 3, { nextDueAt: 0 }) },
+      { concept: concepts[0], state: makeState("cat", "ru-en", 3, { nextDueAt: 0 }) },
+      { concept: concepts[1], state: makeState("dog", "en-ru", 3, { nextDueAt: 0 }) },
+      { concept: concepts[1], state: makeState("dog", "ru-en", 3, { nextDueAt: 0 }) },
+    ];
+    const session = generateSession({
+      now: 100, dueReviews, newConcepts: [], introducedToday: 0,
+      seed: "separate-directions", capabilities,
+    });
+    expect(session.map(({ conceptId }) => conceptId)).toEqual(["cat", "dog", "cat", "dog"]);
+    expect(session.every((question, index) => index === 0 || question.conceptId !== session[index - 1].conceptId)).toBe(true);
+  });
+
   it("introduces both directions, honors quota, and is deterministic", () => {
     const input = {
       now: 100, dueReviews: [review(4, 0)], newConcepts: concepts.slice(0, 3), introducedToday: 4,
