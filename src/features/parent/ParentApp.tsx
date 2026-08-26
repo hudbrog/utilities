@@ -17,8 +17,10 @@ import {
   type ParentSnapshot,
   type ParentWordRow,
 } from "../../application/parentService";
+import type { PwaState, PwaUpdateCheckResult } from "../../pwaUpdate";
 
 type Tab = "today" | "course" | "words" | "settings";
+type UpdateCheckState = "idle" | "checking" | PwaUpdateCheckResult | "error";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -136,7 +138,19 @@ function WordDetail({ word, close, refresh }: { word: ParentWordRow; close: () =
   );
 }
 
-export function ParentApp({ close, openDiagnostics }: { close: () => void; openDiagnostics: () => void }) {
+export function ParentApp({
+  close,
+  openDiagnostics,
+  pwa,
+  checkForUpdate,
+  applyUpdate,
+}: {
+  close: () => void;
+  openDiagnostics: () => void;
+  pwa: PwaState;
+  checkForUpdate: () => Promise<PwaUpdateCheckResult>;
+  applyUpdate: ((reloadPage?: boolean) => Promise<void>) | null;
+}) {
   const [tab, setTab] = useState<Tab>("today");
   const [snapshot, setSnapshot] = useState<ParentSnapshot | null>(null);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
@@ -144,6 +158,8 @@ export function ParentApp({ close, openDiagnostics }: { close: () => void; openD
   const [editingReviewWord, setEditingReviewWord] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [updateCheck, setUpdateCheck] = useState<UpdateCheckState>("idle");
+  const [updateError, setUpdateError] = useState<string | null>(null);
   const restoreInput = useRef<HTMLInputElement>(null);
 
   const refresh = async () => {
@@ -170,6 +186,34 @@ export function ParentApp({ close, openDiagnostics }: { close: () => void; openD
     setSnapshot({ ...snapshot, settings });
     await saveSettings(settings);
   };
+
+  const checkUpdate = async () => {
+    setUpdateCheck("checking");
+    setUpdateError(null);
+    try {
+      setUpdateCheck(await checkForUpdate());
+    } catch (cause) {
+      setUpdateCheck("error");
+      setUpdateError(errorMessage(cause));
+    }
+  };
+
+  const updateAvailable = pwa.needRefresh || updateCheck === "available";
+  const updateStatus = updateAvailable
+    ? "Доступна новая версия. Установите её, чтобы перезапустить приложение."
+    : updateCheck === "current"
+      ? "Установлена актуальная версия."
+      : updateCheck === "offline"
+        ? "Для проверки обновлений нужна сеть."
+        : updateCheck === "unsupported"
+          ? "Этот браузер не поддерживает Service Worker."
+          : updateCheck === "unregistered"
+            ? "Service Worker ещё не зарегистрирован. Повторите проверку через несколько секунд."
+            : updateCheck === "checking"
+              ? "Проверяем опубликованную версию…"
+              : pwa.error
+                ? `Service Worker: ${pwa.error}`
+                : "Автоматическая проверка выполняется при запуске приложения.";
 
   const downloadBackup = async () => {
     const backup = await exportLearnerBackup(__APP_VERSION__);
@@ -343,6 +387,16 @@ export function ParentApp({ close, openDiagnostics }: { close: () => void; openD
               <input type="number" min="0" max="500" value={snapshot.settings.backlogThreshold} onChange={(event) => void updateSettings({ backlogThreshold: Number(event.target.value) })} />
             </label>
             <label className="parent-check"><input type="checkbox" checked={snapshot.settings.suppressNewOnBacklog} onChange={(event) => void updateSettings({ suppressNewOnBacklog: event.target.checked })} /> Приостанавливать новые слова автоматически</label>
+          </section>
+          <section className="parent-panel">
+            <p className="parent-eyebrow">Приложение</p><h2>Обновления</h2>
+            <p className="parent-muted">Текущая версия: v{__APP_VERSION__}</p>
+            <p className="parent-muted" aria-live="polite">{updateError ? `Не удалось проверить: ${updateError}` : updateStatus}</p>
+            <div className="backup-actions">
+              {updateAvailable
+                ? <button className="button button--primary" disabled={!applyUpdate} onClick={() => void applyUpdate?.(true)}>Установить обновление</button>
+                : <button className="button button--secondary" disabled={updateCheck === "checking"} onClick={() => void checkUpdate()}>{updateCheck === "checking" ? "Проверяем…" : "Проверить обновления"}</button>}
+            </div>
           </section>
           <section className="parent-panel">
             <p className="parent-eyebrow">Данные</p><h2>Резервная копия</h2>
