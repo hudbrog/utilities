@@ -1,7 +1,7 @@
 import type { Direction } from "../domain/curriculum/model";
 import { createLocalStudyCalendar } from "../domain/scheduler/studyCalendar";
 import { createBackup, parseBackup, restoreBackup, type BackupEnvelope } from "../infrastructure/db/backup";
-import { setIntroducingUnit } from "../infrastructure/db/curriculumRepository";
+import { pauseIntroducingUnit, setIntroducingUnit } from "../infrastructure/db/curriculumRepository";
 import {
   approveCleanWords,
   approveReviewUnit,
@@ -92,8 +92,9 @@ export async function loadParentSnapshot(now = Date.now()): Promise<ParentSnapsh
     override: overrideById.get(concept.id),
   }));
   const dueCount = states.filter((state) => state.nextDueAt !== null && state.nextDueAt <= now).length;
-  const introducing = units.find((unit) => unit.state === "introducing");
-  const remainingInUnit = introducing?.conceptIds.filter((id) => !progressById.get(id)?.introducedAt).length ?? 0;
+  const remainingInActiveUnits = units
+    .filter((unit) => unit.state === "introducing")
+    .reduce((sum, unit) => sum + unit.conceptIds.filter((id) => !progressById.get(id)?.introducedAt).length, 0);
   const quotaRemaining = Math.max(0, (settings ?? defaultSettings).dailyNewConceptQuota - (today?.quotaConsumed ?? 0));
   return {
     settings: settings ?? defaultSettings,
@@ -101,7 +102,7 @@ export async function loadParentSnapshot(now = Date.now()): Promise<ParentSnapsh
     words,
     today: today ?? null,
     dueCount,
-    newAvailableToday: Math.min(remainingInUnit, quotaRemaining),
+    newAvailableToday: Math.min(remainingInActiveUnits, quotaRemaining),
     reviewUnits,
   };
 }
@@ -114,9 +115,8 @@ export async function startUnit(unitId: string): Promise<void> {
   await setIntroducingUnit(db, unitId);
 }
 
-export async function pauseNewWords(): Promise<void> {
-  const active = await db.units.where("state").equals("introducing").toArray();
-  await db.units.bulkPut(active.map((unit) => ({ ...unit, state: "inactive" as const })));
+export async function pauseNewWords(unitId: string): Promise<void> {
+  await pauseIntroducingUnit(db, unitId);
 }
 
 export async function saveAnswerOverride(

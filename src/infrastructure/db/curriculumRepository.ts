@@ -39,8 +39,15 @@ export async function setIntroducingUnit(db: EnglishSrsDatabase, unitId: string)
   await db.transaction("rw", db.units, async () => {
     const target = await db.units.get(unitId);
     if (!target) throw new Error(`Unknown unit: ${unitId}`);
-    const introducing = await db.units.where("state").equals("introducing").toArray();
-    await db.units.bulkPut(introducing.map((unit) => ({ ...unit, state: "inactive" as const })));
+    if (target.state === "fully_introduced") return;
     await db.units.put({ ...target, state: "introducing" });
+  });
+}
+
+export async function pauseIntroducingUnit(db: EnglishSrsDatabase, unitId: string): Promise<void> {
+  await db.transaction("rw", db.units, async () => {
+    const target = await db.units.get(unitId);
+    if (!target) throw new Error(`Unknown unit: ${unitId}`);
+    if (target.state === "introducing") await db.units.put({ ...target, state: "inactive" });
   });
 }

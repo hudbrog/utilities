@@ -6,7 +6,7 @@ import Dexie from "dexie";
 import { applyReviewRating } from "../../domain/scheduler/scheduler";
 import type { StudyCalendar } from "../../domain/scheduler/studyCalendar";
 import { concepts, makeState, units } from "../../domain/testFixtures";
-import { installCurriculum } from "./curriculumRepository";
+import { installCurriculum, pauseIntroducingUnit, setIntroducingUnit } from "./curriculumRepository";
 import { EnglishSrsDatabase } from "./database";
 import type { Attempt, StudySession } from "./model";
 import {
@@ -14,6 +14,7 @@ import {
   commitAnswer,
   createStudySession,
   presentQuestion,
+  persistedQuestionId,
   QuestionAlreadyAnsweredError,
   readResumableSession,
 } from "./sessionRepository";
@@ -52,6 +53,7 @@ const question = {
   exerciseType: "mc_text" as const,
   kind: "introduction" as const,
 };
+const questionId = persistedQuestionId(session.id, question.id);
 
 function attempt(overrides: Partial<Attempt> = {}): Attempt {
   return {
@@ -69,7 +71,7 @@ function attempt(overrides: Partial<Attempt> = {}): Attempt {
     stageAfter: 1,
     isRemediationRetry: false,
     sessionId: session.id,
-    questionId: question.id,
+    questionId,
     ...overrides,
   };
 }
@@ -87,6 +89,18 @@ describe("curriculum persistence", () => {
   it("validates the complete bundle before mutating storage", async () => {
     await expect(installCurriculum(db, { bad: true }, 10)).rejects.toThrow();
     expect(await db.concepts.count()).toBe(0);
+  });
+
+  it("keeps multiple units active and pauses them independently", async () => {
+    await installCurriculum(db, bundle(), 10);
+    await setIntroducingUnit(db, "unit-2");
+    await setIntroducingUnit(db, "unit-1");
+    expect((await db.units.where("state").equals("introducing").sortBy("number")).map(({ id }) => id))
+      .toEqual(["unit-1", "unit-2"]);
+
+    await pauseIntroducingUnit(db, "unit-1");
+    expect(await db.units.get("unit-1")).toMatchObject({ state: "inactive" });
+    expect(await db.units.get("unit-2")).toMatchObject({ state: "introducing" });
   });
 });
 
@@ -131,7 +145,7 @@ describe("resumable atomic sessions", () => {
 
   it("consumes new-word quota only when the first introduction is displayed", async () => {
     expect(await db.dailyLedgers.count()).toBe(0);
-    await presentQuestion(db, question.id, "2026-08-14", -120, 150);
+    await presentQuestion(db, questionId, "2026-08-14", -120, 150);
     expect(await db.dailyLedgers.get("2026-08-14")).toMatchObject({
       introducedConceptIds: ["cat"], quotaConsumed: 1,
     });
@@ -139,7 +153,7 @@ describe("resumable atomic sessions", () => {
   });
 
   it("persists reveal state and rejects duplicate scoring", async () => {
-    await presentQuestion(db, question.id, "2026-08-14", -120, 150);
+    await presentQuestion(db, questionId, "2026-08-14", -120, 150);
     const before = (await db.directionStates.get("cat:ru-en"))!;
     const after = applyReviewRating(before, "hard", 200, calendar);
     await commitAnswer(db, { attempt: attempt(), directionStateAfter: after, dateKey: "2026-08-14", utcOffsetMinutes: -120 });
@@ -151,7 +165,7 @@ describe("resumable atomic sessions", () => {
   });
 
   it("rolls the entire answer transaction back on failure", async () => {
-    await presentQuestion(db, question.id, "2026-08-14", -120, 150);
+    await presentQuestion(db, questionId, "2026-08-14", -120, 150);
     const before = (await db.directionStates.get("cat:ru-en"))!;
     const after = applyReviewRating(before, "again", 200, calendar);
     await expect(commitAnswer(db, {
@@ -160,16 +174,26 @@ describe("resumable atomic sessions", () => {
     })).rejects.toThrow("injected");
     expect(await db.attempts.count()).toBe(0);
     expect(await db.directionStates.get("cat:ru-en")).toEqual(before);
-    expect(await db.sessionQuestions.get(question.id)).toMatchObject({ status: "current" });
+    expect(await db.sessionQuestions.get(questionId)).toMatchObject({ status: "current" });
     expect(await db.dailyLedgers.get("2026-08-14")).toMatchObject({ questionsCompleted: 0, immediateMistakes: 0 });
   });
 
   it("completes the session only after advancing past the saved reveal", async () => {
-    await presentQuestion(db, question.id, "2026-08-14", -120, 150);
+    await presentQuestion(db, questionId, "2026-08-14", -120, 150);
     const state = (await db.directionStates.get("cat:ru-en"))!;
     await commitAnswer(db, { attempt: attempt(), directionStateAfter: applyReviewRating(state, "hard", 200, calendar), dateKey: "2026-08-14", utcOffsetMinutes: -120 });
     expect((await db.sessions.get(session.id))?.status).toBe("active");
-    await advanceSession(db, question.id, 250);
+    await advanceSession(db, questionId, 250);
     expect((await db.sessions.get(session.id))?.status).toBe("completed");
+  });
+
+  it("scopes repeated question keys to their session", async () => {
+    await db.sessions.update(session.id, { status: "completed" });
+    const nextSession: StudySession = { ...session, id: "session-2", createdAt: 300, updatedAt: 300 };
+    await createStudySession(db, nextSession, [question]);
+    expect(await db.sessionQuestions.toCollection().primaryKeys()).toEqual([
+      persistedQuestionId(session.id, question.id),
+      persistedQuestionId(nextSession.id, question.id),
+    ]);
   });
 });

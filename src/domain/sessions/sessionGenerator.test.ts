@@ -50,6 +50,19 @@ describe("session generation", () => {
     expect(new Set(session.filter(({ kind }) => kind === "introduction").map(({ conceptId }) => conceptId))).toEqual(new Set(["cat"]));
   });
 
+  it("consumes new concepts in the supplied unit order", () => {
+    const session = generateSession({
+      now: 100,
+      dueReviews: [],
+      newConcepts: [concepts[0], concepts[1], concepts[4]],
+      introducedToday: 0,
+      dailyNewConceptQuota: 2,
+      seed: "unit-order",
+      capabilities,
+    });
+    expect([...new Set(session.map(({ conceptId }) => conceptId))]).toEqual(["cat", "dog"]);
+  });
+
   it("suppresses new concepts under a large due backlog", () => {
     const dueReviews = Array.from({ length: 31 }, (_, index) => review(index % concepts.length, index));
     const session = generateSession({ now: 100, dueReviews, newConcepts: concepts, introducedToday: 0, seed: "s", capabilities });

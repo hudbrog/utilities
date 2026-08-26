@@ -9,6 +9,10 @@ import type { Attempt, DailyLedger, PersistedSessionQuestion, StudySession } fro
 export class QuestionAlreadyAnsweredError extends Error {}
 export class SessionStateError extends Error {}
 
+export function persistedQuestionId(sessionId: string, questionId: string): string {
+  return `${sessionId}:${questionId}`;
+}
+
 function initialLedger(dateKey: string, utcOffsetMinutes: number, now: number): DailyLedger {
   return {
     dateKey,
@@ -28,6 +32,7 @@ export async function createStudySession(
 ): Promise<void> {
   const records: PersistedSessionQuestion[] = questions.map((question, position) => ({
     ...question,
+    id: persistedQuestionId(session.id, question.id),
     sessionId: session.id,
     position,
     status: "pending",

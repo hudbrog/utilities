@@ -61,14 +61,15 @@ async function createNextSession(now: number): Promise<StudySession | null> {
       const concept = conceptById.get(state.conceptId);
       return concept && !concept.retired ? [{ state, concept }] : [];
     });
-  const introducingUnit = await db.units.where("state").equals("introducing").first();
+  const introducingUnits = (await db.units.where("state").equals("introducing").toArray())
+    .sort((left, right) => left.number - right.number);
   const progress = new Set((await db.conceptProgress.toArray()).filter((item) => item.introducedAt !== null).map((item) => item.conceptId));
-  const newConcepts = introducingUnit
-    ? introducingUnit.conceptIds.flatMap((id) => {
-        const concept = conceptById.get(id);
-        return concept && !progress.has(id) && !concept.retired ? [concept] : [];
-      })
-    : [];
+  const newConcepts = introducingUnits.flatMap((unit) =>
+    unit.conceptIds.flatMap((id) => {
+      const concept = conceptById.get(id);
+      return concept && !progress.has(id) && !concept.retired ? [concept] : [];
+    }),
+  );
   const seed = `${dateKey}:${crypto.randomUUID()}`;
   const questions = generateSession({
     now,
