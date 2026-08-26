@@ -1,12 +1,17 @@
 import Dexie from "dexie";
 
 import type { DirectionState } from "../../domain/scheduler/model";
+import { createDirectionState } from "../../domain/scheduler/scheduler";
 import type { SessionQuestion } from "../../domain/sessions/sessionGenerator";
 import type { EnglishSrsDatabase } from "./database";
 import type { Attempt, DailyLedger, PersistedSessionQuestion, StudySession } from "./model";
 
 export class QuestionAlreadyAnsweredError extends Error {}
 export class SessionStateError extends Error {}
+
+export function persistedQuestionId(sessionId: string, questionId: string): string {
+  return `${sessionId}:${questionId}`;
+}
 
 function initialLedger(dateKey: string, utcOffsetMinutes: number, now: number): DailyLedger {
   return {
@@ -27,6 +32,7 @@ export async function createStudySession(
 ): Promise<void> {
   const records: PersistedSessionQuestion[] = questions.map((question, position) => ({
     ...question,
+    id: persistedQuestionId(session.id, question.id),
     sessionId: session.id,
     position,
     status: "pending",
@@ -96,21 +102,7 @@ export async function presentQuestion(
 
     const key = `${question.conceptId}:${question.direction}`;
     if (!(await db.directionStates.get(key))) {
-      await db.directionStates.add({
-        key,
-        conceptId: question.conceptId,
-        direction: question.direction,
-        introduced: true,
-        stage: 0,
-        nextDueAt: null,
-        successfulSpokenRecall: false,
-        recentFailureCount: 0,
-        lifetimeFailureCount: 0,
-        sttApparentFailureCount: 0,
-        sttMcConfirmationCount: 0,
-        sttProblematic: false,
-        updatedAt: now,
-      });
+      await db.directionStates.add(createDirectionState(question.conceptId, question.direction, now));
     }
     const presented = { ...question, status: "current" as const };
     await db.sessionQuestions.put(presented);
@@ -142,7 +134,7 @@ export async function commitAnswer(db: EnglishSrsDatabase, input: CommitAnswerIn
         throw new QuestionAlreadyAnsweredError(input.attempt.questionId);
       }
       await db.attempts.add(input.attempt);
-      if (!input.attempt.isRemediationRetry && input.directionStateAfter) {
+      if (input.directionStateAfter) {
         await db.directionStates.put(input.directionStateAfter);
       }
       const ledger = (await db.dailyLedgers.get(input.dateKey)) ??

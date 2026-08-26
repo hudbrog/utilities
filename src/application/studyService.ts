@@ -1,9 +1,13 @@
 import type { ConceptDefinition } from "../domain/curriculum/model";
 import {
-  applyReviewOutcome,
+  applyReviewRating,
   markSuccessfulSpokenRecall,
+  migrateLegacyState,
+  normalizeDirectionState,
+  ratingForPerformance,
   recordSttApparentFailure,
   recordSttMcConfirmation,
+  retrievabilityAt,
 } from "../domain/scheduler/scheduler";
 import { createLocalStudyCalendar } from "../domain/scheduler/studyCalendar";
 import { generateSession, insertRemediation, type SessionQuestion } from "../domain/sessions/sessionGenerator";
@@ -48,7 +52,7 @@ async function createNextSession(now: number): Promise<StudySession | null> {
   const settings = (await db.settings.get("settings"))!;
   const dateKey = calendar.dateKey(now);
   const ledger = await db.dailyLedgers.get(dateKey);
-  const states = await db.directionStates.toArray();
+  const states = (await db.directionStates.toArray()).map(normalizeDirectionState);
   const concepts = await db.concepts.toArray();
   const conceptById = new Map(concepts.map((concept) => [concept.id, concept]));
   const dueReviews = states
@@ -57,14 +61,15 @@ async function createNextSession(now: number): Promise<StudySession | null> {
       const concept = conceptById.get(state.conceptId);
       return concept && !concept.retired ? [{ state, concept }] : [];
     });
-  const introducingUnit = await db.units.where("state").equals("introducing").first();
+  const introducingUnits = (await db.units.where("state").equals("introducing").toArray())
+    .sort((left, right) => left.number - right.number);
   const progress = new Set((await db.conceptProgress.toArray()).filter((item) => item.introducedAt !== null).map((item) => item.conceptId));
-  const newConcepts = introducingUnit
-    ? introducingUnit.conceptIds.flatMap((id) => {
-        const concept = conceptById.get(id);
-        return concept && !progress.has(id) && !concept.retired ? [concept] : [];
-      })
-    : [];
+  const newConcepts = introducingUnits.flatMap((unit) =>
+    unit.conceptIds.flatMap((id) => {
+      const concept = conceptById.get(id);
+      return concept && !progress.has(id) && !concept.retired ? [concept] : [];
+    }),
+  );
   const seed = `${dateKey}:${crypto.randomUUID()}`;
   const questions = generateSession({
     now,
@@ -121,7 +126,16 @@ export type ScoreMetadata = {
   sttAttemptCount?: number;
   sttTranscripts?: string[][];
   sttAdapterStatus?: string;
+  completionMode?: Attempt["completionMode"];
 };
+
+function historicalRating(attempt: Attempt) {
+  return attempt.rating ?? ratingForPerformance(
+    attempt.outcome === "correct",
+    attempt.completionMode ?? (attempt.exerciseType.startsWith("stt_") ? "speech" : "multiple-choice"),
+    attempt.sttAttemptCount,
+  );
+}
 
 export async function scoreAnswer(
   snapshot: StudySnapshot,
@@ -131,17 +145,30 @@ export async function scoreAnswer(
 ): Promise<StudySnapshot> {
   const question = snapshot.current;
   if (!question || question.status !== "current") throw new Error("Вопрос уже отвечен");
-  const state = await db.directionStates.get(`${question.conceptId}:${question.direction}`);
-  if (!state) throw new Error("Не найдено состояние слова");
+  const storedState = await db.directionStates.get(`${question.conceptId}:${question.direction}`);
+  if (!storedState) throw new Error("Не найдено состояние слова");
+  let state = normalizeDirectionState(storedState);
+  if (state.scheduler === "legacy-stage") {
+    const history = await db.attempts.where("conceptId").equals(question.conceptId)
+      .filter((attempt) => attempt.direction === question.direction && !attempt.isRemediationRetry)
+      .toArray();
+    state = migrateLegacyState(
+      state,
+      history.map((attempt) => ({ occurredAt: attempt.occurredAt, rating: historicalRating(attempt) })),
+      calendar,
+    );
+  }
   const isRemediation = question.kind === "remediation";
-  let stateAfter = isRemediation ? state : applyReviewOutcome(state, correct ? "success" : "failure", now, calendar);
-  if (!isRemediation && question.exerciseType.startsWith("stt_") && correct) {
+  const completionMode = metadata.completionMode ?? (question.exerciseType.startsWith("stt_") ? "speech" : "multiple-choice");
+  const rating = ratingForPerformance(correct, completionMode, metadata.sttAttemptCount ?? 0);
+  let stateAfter = isRemediation ? state : applyReviewRating(state, rating, now, calendar);
+  if (!isRemediation && completionMode === "speech" && correct) {
     stateAfter = markSuccessfulSpokenRecall(stateAfter, now);
   }
-  if (!isRemediation && question.exerciseType.startsWith("stt_") && !correct && metadata.completionReason === "third_stt_mismatch") {
+  if (!isRemediation && completionMode === "speech" && !correct && metadata.completionReason === "third_stt_mismatch") {
     stateAfter = recordSttApparentFailure(stateAfter, now);
   }
-  if (isRemediation && question.exerciseType.startsWith("mc_") && correct) {
+  if (isRemediation && question.sourceExerciseType?.startsWith("stt_") && completionMode === "multiple-choice" && correct) {
     stateAfter = recordSttMcConfirmation(stateAfter, now);
   }
   const attempt: Attempt = {
@@ -151,14 +178,23 @@ export async function scoreAnswer(
     sttAttemptCount: metadata.sttAttemptCount ?? 0,
     sttTranscripts: metadata.sttTranscripts ?? [],
     sttAdapterStatus: metadata.sttAdapterStatus,
+    completionMode,
+    schedulerVersion: "fsrs-6",
+    rating: isRemediation ? undefined : rating,
+    stabilityBefore: state.stability,
+    difficultyBefore: state.difficulty,
+    retrievabilityBefore: retrievabilityAt(state, now, calendar),
+    stabilityAfter: stateAfter.stability,
+    difficultyAfter: stateAfter.difficulty,
+    scheduledDaysAfter: stateAfter.scheduledDays,
     stageBefore: state.stage,
     stageAfter: stateAfter.stage, isRemediationRetry: isRemediation, sessionId: question.sessionId, questionId: question.id,
   };
 
   let remediation: PersistedSessionQuestion | undefined;
   if (!correct && !isRemediation) {
-    const domainQuestions: SessionQuestion[] = snapshot.questions.map(({ id, conceptId, direction, exerciseType, kind }) => ({
-      id, conceptId, direction, exerciseType, kind,
+    const domainQuestions: SessionQuestion[] = snapshot.questions.map(({ id, conceptId, direction, exerciseType, kind, sourceExerciseType }) => ({
+      id, conceptId, direction, exerciseType, kind, sourceExerciseType,
     }));
     const failedIndex = snapshot.questions.findIndex((item) => item.id === question.id);
     const withRetry = insertRemediation(domainQuestions, failedIndex, domainQuestions[failedIndex], snapshot.session.seed);

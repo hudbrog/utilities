@@ -10,6 +10,18 @@ describe("exercise policy", () => {
     expect(selectExerciseType(makeState("cat", "ru-en", 1), full, "x")).toBe("mc_text");
   });
 
+  it("uses FSRS memory progress rather than the compatibility stage", () => {
+    expect(selectExerciseType(makeState("cat", "ru-en", 7, {
+      successfulReviewCount: 1,
+      stability: 120,
+    }), full, "x")).toBe("mc_text");
+    expect(selectExerciseType(makeState("cat", "ru-en", 0, {
+      memoryState: "review",
+      successfulReviewCount: 3,
+      stability: 7,
+    }), full, "x")).toBe("stt_text");
+  });
+
   it("uses speech recall at middle stages and falls back when STT is unavailable", () => {
     expect(selectExerciseType(makeState("cat", "ru-en", 3), full, "x")).toBe("stt_text");
     expect(selectExerciseType(makeState("cat", "ru-en", 3), { ...full, speechRecognitionAvailable: false }, "x")).toBe("mc_text");

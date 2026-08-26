@@ -3,7 +3,7 @@ import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { concepts, makeState, units } from "../../domain/testFixtures";
-import { createBackup, restoreBackup } from "./backup";
+import { createBackup, parseBackup, restoreBackup } from "./backup";
 import { installCurriculum } from "./curriculumRepository";
 import { EnglishSrsDatabase } from "./database";
 
@@ -35,12 +35,48 @@ describe("backup and restore", () => {
     await source.curriculumReviewDecisions.put({ conceptId: "cat", proposalFingerprint: "proposal-1", status: "edited", ru: "кот", acceptedEn: ["kitty"], acceptedRu: [], updatedAt: 6 });
     await source.curriculumReviewUnits.put({ unitId: "unit-1", reviewFingerprint: "review-fingerprint", approvedAt: 7 });
     const backup = await createBackup(source, "0.0.1", "2026-08-14T12:00:00.000Z");
+    expect(backup.backupSchemaVersion).toBe(3);
     await restoreBackup(target, JSON.parse(JSON.stringify(backup)));
     expect(await target.settings.toArray()).toEqual(await source.settings.toArray());
     expect(await target.directionStates.toArray()).toEqual(await source.directionStates.toArray());
     expect(await target.answerOverrides.toArray()).toEqual(await source.answerOverrides.toArray());
     expect(await target.curriculumReviewDecisions.toArray()).toEqual(await source.curriculumReviewDecisions.toArray());
     expect(await target.curriculumReviewUnits.toArray()).toEqual(await source.curriculumReviewUnits.toArray());
+  });
+
+  it("imports a version 2 backup as lazy legacy scheduler state", async () => {
+    const currentState = makeState("cat", "ru-en", 4, { nextDueAt: 123 });
+    const {
+      scheduler: _scheduler,
+      memoryState: _memoryState,
+      stability: _stability,
+      difficulty: _difficulty,
+      lastReviewAt: _lastReviewAt,
+      scheduledDays: _scheduledDays,
+      reps: _reps,
+      lapses: _lapses,
+      successfulReviewCount: _successfulReviewCount,
+      ...legacyState
+    } = currentState;
+    const parsed = parseBackup({
+      format: "english-srs-backup",
+      backupSchemaVersion: 2,
+      exportedAt: "2026-08-14T12:00:00.000Z",
+      appVersion: "0.0.1",
+      curriculumVersion: "test-1",
+      payload: {
+        settings: [], unitStates: [], conceptProgress: [], directionStates: [legacyState],
+        attempts: [], answerOverrides: [], dailyLedgers: [],
+        curriculumReviewDecisions: [], curriculumReviewUnits: [],
+      },
+    });
+    expect(parsed.backupSchemaVersion).toBe(3);
+    expect(parsed.payload.directionStates[0]).toMatchObject({
+      scheduler: "legacy-stage",
+      stage: 4,
+      nextDueAt: 123,
+      stability: null,
+    });
   });
 
   it("validates before opening a write transaction", async () => {

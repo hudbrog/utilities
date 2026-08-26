@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { unitDefinitionSchema } from "../../domain/curriculum/schema";
+import { normalizeDirectionState } from "../../domain/scheduler/scheduler";
 import type { EnglishSrsDatabase } from "./database";
 import type { MutableBackupPayload } from "./model";
 
@@ -17,14 +18,22 @@ const conceptProgressSchema = z.object({
   conceptId: z.string().min(1), introducedAt: z.number().nullable(), introducedFromUnitId: z.string(),
   skipped: z.boolean(), retired: z.boolean(),
 });
-const directionStateSchema = z.object({
+const legacyDirectionStateSchema = z.object({
   key: z.string().min(1), conceptId: z.string().min(1), direction, introduced: z.boolean(),
   stage: z.number().int().min(0).max(7), nextDueAt: z.number().nullable(), successfulSpokenRecall: z.boolean(),
   recentFailureCount: z.number().int().nonnegative(), lifetimeFailureCount: z.number().int().nonnegative(),
   sttApparentFailureCount: z.number().int().nonnegative(), sttMcConfirmationCount: z.number().int().nonnegative(),
   sttProblematic: z.boolean(), updatedAt: z.number(),
 });
-const attemptSchema = z.object({
+const directionStateSchema = legacyDirectionStateSchema.extend({
+  scheduler: z.enum(["legacy-stage", "fsrs-6"]),
+  memoryState: z.enum(["new", "learning", "review", "relearning"]),
+  stability: z.number().positive().nullable(), difficulty: z.number().min(1).max(10).nullable(),
+  lastReviewAt: z.number().nullable(), scheduledDays: z.number().int().nonnegative(),
+  reps: z.number().int().nonnegative(), lapses: z.number().int().nonnegative(),
+  successfulReviewCount: z.number().int().nonnegative(),
+});
+const legacyAttemptSchema = z.object({
   id: z.string().min(1), conceptId: z.string().min(1), direction, exerciseType,
   occurredAt: z.number(), outcome: z.enum(["correct", "incorrect"]),
   completionReason: z.enum(["answer", "third_stt_mismatch"]),
@@ -32,6 +41,14 @@ const attemptSchema = z.object({
   sttAdapterStatus: z.string().optional(), stageBefore: z.number().int().min(0).max(7),
   stageAfter: z.number().int().min(0).max(7), isRemediationRetry: z.boolean(),
   sessionId: z.string().min(1), questionId: z.string().min(1),
+});
+const attemptSchema = legacyAttemptSchema.extend({
+  completionMode: z.enum(["multiple-choice", "speech"]), schedulerVersion: z.literal("fsrs-6").optional(),
+  rating: z.enum(["again", "hard", "good"]).optional(),
+  stabilityBefore: z.number().positive().nullable().optional(), difficultyBefore: z.number().min(1).max(10).nullable().optional(),
+  retrievabilityBefore: z.number().min(0).max(1).nullable().optional(),
+  stabilityAfter: z.number().positive().nullable().optional(), difficultyAfter: z.number().min(1).max(10).nullable().optional(),
+  scheduledDaysAfter: z.number().int().nonnegative().optional(),
 });
 const answerOverrideSchema = z.object({
   conceptId: z.string().min(1), acceptedEn: z.array(z.string()), acceptedRu: z.array(z.string()), updatedAt: z.number(),
@@ -51,16 +68,23 @@ const reviewUnitSchema = z.object({
 });
 const legacyPayloadSchema = z.object({
   settings: z.array(settingsSchema), unitStates: z.array(installedUnitSchema),
-  conceptProgress: z.array(conceptProgressSchema), directionStates: z.array(directionStateSchema),
-  attempts: z.array(attemptSchema), answerOverrides: z.array(answerOverrideSchema), dailyLedgers: z.array(dailyLedgerSchema),
+  conceptProgress: z.array(conceptProgressSchema), directionStates: z.array(legacyDirectionStateSchema),
+  attempts: z.array(legacyAttemptSchema), answerOverrides: z.array(answerOverrideSchema), dailyLedgers: z.array(dailyLedgerSchema),
 });
-const payloadSchema = legacyPayloadSchema.extend({
+const versionTwoPayloadSchema = legacyPayloadSchema.extend({
   curriculumReviewDecisions: z.array(reviewDecisionSchema), curriculumReviewUnits: z.array(reviewUnitSchema),
+});
+const payloadSchema = versionTwoPayloadSchema.extend({
+  directionStates: z.array(directionStateSchema), attempts: z.array(attemptSchema),
 });
 
 export const backupEnvelopeSchema = z.object({
-  format: z.literal("english-srs-backup"), backupSchemaVersion: z.literal(2),
+  format: z.literal("english-srs-backup"), backupSchemaVersion: z.literal(3),
   exportedAt: z.iso.datetime(), appVersion: z.string().min(1), curriculumVersion: z.string(), payload: payloadSchema,
+});
+const versionTwoBackupEnvelopeSchema = z.object({
+  format: z.literal("english-srs-backup"), backupSchemaVersion: z.literal(2),
+  exportedAt: z.iso.datetime(), appVersion: z.string().min(1), curriculumVersion: z.string(), payload: versionTwoPayloadSchema,
 });
 const legacyBackupEnvelopeSchema = z.object({
   format: z.literal("english-srs-backup"), backupSchemaVersion: z.literal(1),
@@ -85,7 +109,7 @@ export async function createBackup(
       ]),
     );
   return backupEnvelopeSchema.parse({
-    format: "english-srs-backup", backupSchemaVersion: 2, exportedAt, appVersion,
+    format: "english-srs-backup", backupSchemaVersion: 3, exportedAt, appVersion,
     curriculumVersion: curriculumMeta?.value ?? "",
     payload: { settings, unitStates, conceptProgress, directionStates, attempts, answerOverrides, dailyLedgers, curriculumReviewDecisions, curriculumReviewUnits },
   });
@@ -94,11 +118,23 @@ export async function createBackup(
 export function parseBackup(input: unknown): BackupEnvelope {
   const current = backupEnvelopeSchema.safeParse(input);
   if (current.success) return current.data;
-  const legacy = legacyBackupEnvelopeSchema.parse(input);
+  const versionTwo = versionTwoBackupEnvelopeSchema.safeParse(input);
+  const legacy = versionTwo.success ? versionTwo.data : legacyBackupEnvelopeSchema.parse(input);
+  const review = versionTwo.success
+    ? { curriculumReviewDecisions: versionTwo.data.payload.curriculumReviewDecisions, curriculumReviewUnits: versionTwo.data.payload.curriculumReviewUnits }
+    : { curriculumReviewDecisions: [], curriculumReviewUnits: [] };
   return {
     ...legacy,
-    backupSchemaVersion: 2,
-    payload: { ...legacy.payload, curriculumReviewDecisions: [], curriculumReviewUnits: [] },
+    backupSchemaVersion: 3,
+    payload: {
+      ...legacy.payload,
+      ...review,
+      directionStates: legacy.payload.directionStates.map((state) => normalizeDirectionState(state as never)),
+      attempts: legacy.payload.attempts.map((attempt) => ({
+        ...attempt,
+        completionMode: attempt.exerciseType.startsWith("stt_") ? "speech" as const : "multiple-choice" as const,
+      })),
+    },
   };
 }
 

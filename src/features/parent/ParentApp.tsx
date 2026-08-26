@@ -297,7 +297,7 @@ export function ParentApp({ close, openDiagnostics }: { close: () => void; openD
           ) : (
             <>
               <p className="parent-eyebrow">Курс</p><h2>Проверка и добавление блоков</h2>
-              <p className="parent-muted">Непроверенные слова не используются в занятиях. Сначала одобрите блок, затем начните его.</p>
+              <p className="parent-muted">Сначала одобрите блок, затем добавьте его в занятия. Можно включить несколько блоков — новые слова пойдут по порядку, начиная с более раннего.</p>
               <div className="unit-list">{snapshot.reviewUnits.map((candidate) => {
                 const active = snapshot.units.find((unit) => unit.id === candidate.unit.id);
                 const introduced = active?.conceptIds.filter((id) => snapshot.words.find((item) => item.concept.id === id)?.progressIntroduced).length ?? 0;
@@ -307,8 +307,10 @@ export function ParentApp({ close, openDiagnostics }: { close: () => void; openD
                     <div className="unit-card-actions">
                       <button className="button button--secondary" onClick={() => setSelectedReviewUnit(candidate.unit.id)}>{candidate.approvedAt ? "Просмотреть" : "Проверить"}</button>
                       {candidate.approvedAt && (active?.state === "introducing"
-                        ? <button className="button button--secondary" onClick={() => void pauseNewWords().then(refresh)}>Пауза</button>
-                        : <button className="button button--primary" onClick={() => void startUnit(candidate.unit.id).then(refresh)}>Начать блок</button>)}
+                        ? <button className="button button--secondary" onClick={() => void mutateReview(() => pauseNewWords(candidate.unit.id), "Блок поставлен на паузу.")}>Пауза</button>
+                        : active?.state === "fully_introduced"
+                          ? <button className="button button--secondary" disabled>Блок завершён</button>
+                          : <button className="button button--primary" onClick={() => void mutateReview(() => startUnit(candidate.unit.id), "Блок добавлен в занятия.")}>Добавить в занятия</button>)}
                     </div>
                   </article>
                 );

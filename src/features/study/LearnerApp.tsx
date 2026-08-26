@@ -104,7 +104,7 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
     setBusy(true);
     setSelectedId(option.conceptId);
     try {
-      const next = await scoreAnswer(view.snapshot, option.correct);
+      const next = await scoreAnswer(view.snapshot, option.correct, { completionMode: "multiple-choice" });
       await replaceSnapshot(next);
       setSelectedId(option.conceptId);
       void playAnswer(next);
@@ -127,12 +127,12 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
       setSttAttempts(history);
       const matched = transcripts.some((transcript) => isAcceptedAnswer(transcript, view.snapshot.concept!, view.snapshot.current!.direction));
       if (matched) {
-        const scored = await scoreAnswer(view.snapshot, true, { sttAttemptCount: history.length, sttTranscripts: history });
+        const scored = await scoreAnswer(view.snapshot, true, { completionMode: "speech", sttAttemptCount: history.length, sttTranscripts: history });
         await replaceSnapshot(scored);
         void playAnswer(scored);
       } else if (history.length >= 3) {
         const scored = await scoreAnswer(view.snapshot, false, {
-          completionReason: "third_stt_mismatch", sttAttemptCount: history.length, sttTranscripts: history,
+          completionMode: "speech", completionReason: "third_stt_mismatch", sttAttemptCount: history.length, sttTranscripts: history,
         });
         await replaceSnapshot(scored);
         void playAnswer(scored);
