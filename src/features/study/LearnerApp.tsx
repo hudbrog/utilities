@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { buildMultipleChoiceOptions, type MultipleChoiceOption } from "../../domain/exercises/distractors";
 import { speak } from "../../infrastructure/speech/synthesis";
@@ -17,6 +17,13 @@ type ViewState =
   | { status: "loading" }
   | { status: "ready"; snapshot: StudySnapshot; options: MultipleChoiceOption[] }
   | { status: "error"; message: string };
+
+const TRANSITION_DEBOUNCE_MS = 450;
+const CORRECT_FEEDBACK_MS = 700;
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+}
 
 function messageFor(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -53,6 +60,8 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
   const [sttAttempts, setSttAttempts] = useState<string[][]>([]);
   const [sttMessage, setSttMessage] = useState<string | null>(null);
   const [mcFallback, setMcFallback] = useState(false);
+  const actionInFlight = useRef(false);
+  const inputLockedUntil = useRef(0);
 
   const replaceSnapshot = useCallback(async (snapshot: StudySnapshot) => {
     setSelectedId(null);
@@ -60,8 +69,22 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
     setSttAttempts([]);
     setSttMessage(null);
     setMcFallback(false);
-    setView({ status: "ready", snapshot, options: await optionsFor(snapshot) });
+    const options = await optionsFor(snapshot);
+    inputLockedUntil.current = performance.now() + TRANSITION_DEBOUNCE_MS;
+    setView({ status: "ready", snapshot, options });
   }, []);
+
+  const beginAction = () => {
+    if (actionInFlight.current || performance.now() < inputLockedUntil.current) return false;
+    actionInFlight.current = true;
+    setBusy(true);
+    return true;
+  };
+
+  const endAction = () => {
+    actionInFlight.current = false;
+    setBusy(false);
+  };
 
   useEffect(() => {
     void loadStudy()
@@ -99,25 +122,30 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
     }
   };
 
+  const showScoredAnswer = async (scored: StudySnapshot) => {
+    await replaceSnapshot(scored);
+    if (scored.current?.revealedOutcome !== "correct") {
+      void playAnswer(scored);
+      return;
+    }
+    await Promise.all([playAnswer(scored), delay(CORRECT_FEEDBACK_MS)]);
+    await replaceSnapshot(await goToNextQuestion(scored));
+  };
+
   const choose = async (option: MultipleChoiceOption) => {
-    if (view.status !== "ready" || busy || view.snapshot.current?.status !== "current") return;
-    setBusy(true);
+    if (view.status !== "ready" || view.snapshot.current?.status !== "current" || !beginAction()) return;
     setSelectedId(option.conceptId);
     try {
-      const next = await scoreAnswer(view.snapshot, option.correct, { completionMode: "multiple-choice" });
-      await replaceSnapshot(next);
-      setSelectedId(option.conceptId);
-      void playAnswer(next);
+      await showScoredAnswer(await scoreAnswer(view.snapshot, option.correct, { completionMode: "multiple-choice" }));
     } catch (error) {
       setView({ status: "error", message: messageFor(error) });
     } finally {
-      setBusy(false);
+      endAction();
     }
   };
 
   const listen = async () => {
-    if (view.status !== "ready" || busy || !view.snapshot.current || !view.snapshot.concept) return;
-    setBusy(true);
+    if (view.status !== "ready" || !view.snapshot.current || !view.snapshot.concept || !beginAction()) return;
     setSttMessage("Слушаю…");
     try {
       const locale = view.snapshot.current.direction === "en-ru" ? "ru-RU" : "en-US";
@@ -127,15 +155,11 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
       setSttAttempts(history);
       const matched = transcripts.some((transcript) => isAcceptedAnswer(transcript, view.snapshot.concept!, view.snapshot.current!.direction));
       if (matched) {
-        const scored = await scoreAnswer(view.snapshot, true, { completionMode: "speech", sttAttemptCount: history.length, sttTranscripts: history });
-        await replaceSnapshot(scored);
-        void playAnswer(scored);
+        await showScoredAnswer(await scoreAnswer(view.snapshot, true, { completionMode: "speech", sttAttemptCount: history.length, sttTranscripts: history }));
       } else if (history.length >= 3) {
-        const scored = await scoreAnswer(view.snapshot, false, {
+        await showScoredAnswer(await scoreAnswer(view.snapshot, false, {
           completionMode: "speech", completionReason: "third_stt_mismatch", sttAttemptCount: history.length, sttTranscripts: history,
-        });
-        await replaceSnapshot(scored);
-        void playAnswer(scored);
+        }));
       } else if (history.length === 1) {
         setSttMessage("Не расслышала. Попробуй ещё раз.");
       } else {
@@ -146,19 +170,18 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
       setSttMessage(code === "not-allowed" ? "Микрофон недоступен. Можно выбрать ответ." : "Речь сейчас не распознаётся. Попробуй ещё раз или выбери ответ.");
       setMcFallback(true);
     } finally {
-      setBusy(false);
+      endAction();
     }
   };
 
   const next = async () => {
-    if (view.status !== "ready" || busy) return;
-    setBusy(true);
+    if (view.status !== "ready" || !beginAction()) return;
     try {
       await replaceSnapshot(await goToNextQuestion(view.snapshot));
     } catch (error) {
       setView({ status: "error", message: messageFor(error) });
     } finally {
-      setBusy(false);
+      endAction();
     }
   };
 
@@ -251,9 +274,11 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
                 <strong>{answerText(snapshot)}</strong>
               </div>
             </div>
-            <button className="replay-button" onClick={() => void playAnswer(snapshot)} aria-label="Повторить произношение">🔊 Ещё раз</button>
+            {!correct && <button className="replay-button" onClick={() => void playAnswer(snapshot)} aria-label="Повторить произношение">🔊 Ещё раз</button>}
             {audioError && <small className="audio-warning">Не удалось воспроизвести звук</small>}
-            <button className="next-button" disabled={busy} onClick={() => void next()}>Дальше</button>
+            {correct
+              ? <small>Следующее слово…</small>
+              : <button className="next-button" disabled={busy} onClick={() => void next()}>Дальше</button>}
           </div>
         )}
       </section>

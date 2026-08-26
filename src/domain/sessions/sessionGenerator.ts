@@ -68,6 +68,20 @@ function interleave<T>(left: readonly T[], right: readonly T[]): T[] {
   return result;
 }
 
+function separateAdjacentConcepts(questions: readonly SessionQuestion[]): SessionQuestion[] {
+  const remaining = [...questions];
+  const result: SessionQuestion[] = [];
+  while (remaining.length > 0) {
+    const previousConceptId = result.at(-1)?.conceptId;
+    const differentIndex = previousConceptId === undefined
+      ? 0
+      : remaining.findIndex(({ conceptId }) => conceptId !== previousConceptId);
+    const nextIndex = differentIndex < 0 ? 0 : differentIndex;
+    result.push(remaining.splice(nextIndex, 1)[0]);
+  }
+  return result;
+}
+
 export function generateSession(input: SessionGenerationInput): SessionQuestion[] {
   const chunkSize = input.chunkSize ?? 15;
   const dailyQuota = input.dailyNewConceptQuota ?? 5;
@@ -99,7 +113,7 @@ export function generateSession(input: SessionGenerationInput): SessionQuestion[
     kind: "review" as const,
   }));
 
-  return interleave<SessionQuestion>(reviews, introductions).slice(0, chunkSize);
+  return separateAdjacentConcepts(interleave<SessionQuestion>(reviews, introductions)).slice(0, chunkSize);
 }
 
 export function insertRemediation(
