@@ -18,14 +18,9 @@ import {
   hasLocalRecognitionApi,
 } from "./infrastructure/speech/recognition";
 import { registerPwa } from "./pwa";
+import { checkForPwaUpdate, type PwaState } from "./pwaUpdate";
 
 type ProbeSummary = { count: number; last?: PersistenceProbe };
-
-type PwaState = {
-  offlineReady: boolean;
-  needRefresh: boolean;
-  error?: string;
-};
 
 function formatTime(timestamp?: number) {
   if (!timestamp) return "нет меток";
@@ -307,7 +302,15 @@ export default function App() {
     return <DiagnosticsApp closeDiagnostics={openParent} pwa={pwa} applyUpdate={applyUpdate} />;
   }
   if (route === "parent") {
-    return <ParentApp close={closeDiagnostics} openDiagnostics={openDiagnostics} />;
+    return (
+      <ParentApp
+        close={closeDiagnostics}
+        openDiagnostics={openDiagnostics}
+        pwa={pwa}
+        checkForUpdate={checkForPwaUpdate}
+        applyUpdate={applyUpdate}
+      />
+    );
   }
   return <LearnerApp openDiagnostics={openParent} />;
 }
