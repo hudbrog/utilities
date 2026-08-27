@@ -88,6 +88,9 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
 
   useEffect(() => {
     void loadStudy()
+      .then((snapshot) => snapshot.current?.status === "revealed" && snapshot.current.revealedOutcome === "correct"
+        ? goToNextQuestion(snapshot)
+        : snapshot)
       .then(replaceSnapshot)
       .catch((error: unknown) => setView({ status: "error", message: messageFor(error) }));
   }, [replaceSnapshot]);
