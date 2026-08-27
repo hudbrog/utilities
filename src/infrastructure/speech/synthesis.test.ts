@@ -55,4 +55,20 @@ describe("speech synthesis", () => {
     await result;
     expect(cancel).toHaveBeenCalledTimes(2);
   });
+
+  it("settles superseded speech without letting its timeout cancel the new utterance", async () => {
+    const utterances: FakeUtterance[] = [];
+    synth.speak.mockImplementation((utterance: FakeUtterance) => utterances.push(utterance));
+
+    const first = speak("first", "en-US");
+    await vi.advanceTimersByTimeAsync(0);
+    const second = speak("second", "en-US");
+    await expect(first).resolves.toMatchObject({ name: "Test voice" });
+    await vi.advanceTimersByTimeAsync(0);
+    utterances[1].onend?.();
+    await expect(second).resolves.toMatchObject({ name: "Test voice" });
+
+    await vi.advanceTimersByTimeAsync(speechCompletionTimeoutMs("first"));
+    expect(cancel).toHaveBeenCalledTimes(2);
+  });
 });
