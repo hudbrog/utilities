@@ -14,6 +14,7 @@ import { generateSession, insertRemediation, type SessionQuestion } from "../dom
 import { getRecognitionConstructor } from "../infrastructure/speech/recognition";
 import { initializeCurriculumReview, loadDistractorCurriculum } from "../infrastructure/db/curriculumReviewRepository";
 import { db } from "../infrastructure/db/database";
+import { loadLearnerSettings } from "../infrastructure/db/settingsRepository";
 import type { Attempt, PersistedSessionQuestion, StudySession } from "../infrastructure/db/model";
 import {
   advanceSession,
@@ -36,20 +37,11 @@ export type StudySnapshot = {
 
 async function ensureDefaults(now: number): Promise<void> {
   await initializeCurriculumReview(db, now);
-  if (!(await db.settings.get("settings"))) {
-    await db.settings.put({
-      id: "settings",
-      dailyNewConceptQuota: 5,
-      backlogThreshold: 30,
-      suppressNewOnBacklog: true,
-      listeningAudioRatio: 0.3,
-      englishLocale: "en-US",
-    });
-  }
+  await loadLearnerSettings(db);
 }
 
 async function createNextSession(now: number): Promise<StudySession | null> {
-  const settings = (await db.settings.get("settings"))!;
+  const settings = await loadLearnerSettings(db);
   const dateKey = calendar.dateKey(now);
   const ledger = await db.dailyLedgers.get(dateKey);
   const states = (await db.directionStates.toArray()).map(normalizeDirectionState);
@@ -78,6 +70,7 @@ async function createNextSession(now: number): Promise<StudySession | null> {
     introducedToday: ledger?.quotaConsumed ?? 0,
     dailyNewConceptQuota: settings.dailyNewConceptQuota,
     suppressNewWhenDueExceeds: settings.suppressNewOnBacklog ? settings.backlogThreshold : Number.POSITIVE_INFINITY,
+    chunkSize: settings.sessionQuestionLimit,
     seed,
     capabilities: { speechRecognitionAvailable: Boolean(getRecognitionConstructor()), listeningAudioUnlocked: false },
   });

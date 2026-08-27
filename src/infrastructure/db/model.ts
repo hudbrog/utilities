@@ -10,6 +10,7 @@ export type LearnerSettings = {
   dailyNewConceptQuota: number;
   backlogThreshold: number;
   suppressNewOnBacklog: boolean;
+  sessionQuestionLimit: number;
   listeningAudioRatio: number;
   englishLocale: "en-US" | "en-GB";
   parentPinHash?: string;

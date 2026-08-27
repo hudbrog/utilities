@@ -10,6 +10,7 @@ const exerciseType = z.enum(["mc_text", "stt_text", "mc_audio", "stt_audio"]);
 const settingsSchema = z.object({
   id: z.literal("settings"), dailyNewConceptQuota: z.number().int().nonnegative(),
   backlogThreshold: z.number().int().nonnegative(), suppressNewOnBacklog: z.boolean(),
+  sessionQuestionLimit: z.number().int().min(2).max(100).default(15),
   listeningAudioRatio: z.number().min(0).max(1), englishLocale: z.enum(["en-US", "en-GB"]),
   parentPinHash: z.string().optional(),
 });

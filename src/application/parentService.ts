@@ -12,6 +12,7 @@ import {
   type ReviewUnitSnapshot,
 } from "../infrastructure/db/curriculumReviewRepository";
 import { db } from "../infrastructure/db/database";
+import { loadLearnerSettings, normalizeLearnerSettings } from "../infrastructure/db/settingsRepository";
 import type {
   AnswerOverride,
   Attempt,
@@ -43,18 +44,9 @@ export type ParentSnapshot = {
   reviewUnits: ReviewUnitSnapshot[];
 };
 
-const defaultSettings: LearnerSettings = {
-  id: "settings",
-  dailyNewConceptQuota: 5,
-  backlogThreshold: 30,
-  suppressNewOnBacklog: true,
-  listeningAudioRatio: 0.3,
-  englishLocale: "en-US",
-};
-
 async function initialize(now: number): Promise<void> {
   await initializeCurriculumReview(db, now);
-  if (!(await db.settings.get("settings"))) await db.settings.put(defaultSettings);
+  await loadLearnerSettings(db);
 }
 
 export async function loadParentSnapshot(now = Date.now()): Promise<ParentSnapshot> {
@@ -95,9 +87,10 @@ export async function loadParentSnapshot(now = Date.now()): Promise<ParentSnapsh
   const remainingInActiveUnits = units
     .filter((unit) => unit.state === "introducing")
     .reduce((sum, unit) => sum + unit.conceptIds.filter((id) => !progressById.get(id)?.introducedAt).length, 0);
-  const quotaRemaining = Math.max(0, (settings ?? defaultSettings).dailyNewConceptQuota - (today?.quotaConsumed ?? 0));
+  const normalizedSettings = normalizeLearnerSettings(settings);
+  const quotaRemaining = Math.max(0, normalizedSettings.dailyNewConceptQuota - (today?.quotaConsumed ?? 0));
   return {
-    settings: settings ?? defaultSettings,
+    settings: normalizedSettings,
     units,
     words,
     today: today ?? null,
@@ -108,7 +101,7 @@ export async function loadParentSnapshot(now = Date.now()): Promise<ParentSnapsh
 }
 
 export async function saveSettings(settings: LearnerSettings): Promise<void> {
-  await db.settings.put(settings);
+  await db.settings.put(normalizeLearnerSettings(settings));
 }
 
 export async function startUnit(unitId: string): Promise<void> {
