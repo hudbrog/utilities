@@ -131,7 +131,8 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
       void playAnswer(scored);
       return;
     }
-    await Promise.all([playAnswer(scored), delay(CORRECT_FEEDBACK_MS)]);
+    void playAnswer(scored);
+    await delay(CORRECT_FEEDBACK_MS);
     await replaceSnapshot(await goToNextQuestion(scored));
   };
 
