@@ -383,6 +383,10 @@ export function ParentApp({
             <label className="field-label">Новых слов в день
               <input type="number" min="0" max="20" value={snapshot.settings.dailyNewConceptQuota} onChange={(event) => void updateSettings({ dailyNewConceptQuota: Number(event.target.value) })} />
             </label>
+            <label className="field-label">Заданий за одно занятие
+              <input type="number" min="2" max="100" value={snapshot.settings.sessionQuestionLimit} onChange={(event) => void updateSettings({ sessionQuestionLimit: Number(event.target.value) })} />
+              <small>Применится при создании следующего занятия.</small>
+            </label>
             <label className="field-label">Остановить новые слова при очереди больше
               <input type="number" min="0" max="500" value={snapshot.settings.backlogThreshold} onChange={(event) => void updateSettings({ backlogThreshold: Number(event.target.value) })} />
             </label>

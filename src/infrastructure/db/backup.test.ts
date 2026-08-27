@@ -28,7 +28,7 @@ describe("backup and restore", () => {
   it("round-trips mutable learner data", async () => {
     await source.settings.put({
       id: "settings", dailyNewConceptQuota: 5, backlogThreshold: 30, suppressNewOnBacklog: true,
-      listeningAudioRatio: 0.3, englishLocale: "en-US",
+      sessionQuestionLimit: 24, listeningAudioRatio: 0.3, englishLocale: "en-US",
     });
     await source.directionStates.put(makeState("cat", "ru-en", 4, { nextDueAt: 123 }));
     await source.answerOverrides.put({ conceptId: "cat", acceptedEn: ["kitty"], acceptedRu: ["кот"], updatedAt: 5 });
@@ -77,6 +77,25 @@ describe("backup and restore", () => {
       nextDueAt: 123,
       stability: null,
     });
+  });
+
+  it("defaults the session question limit in older backups", () => {
+    const parsed = parseBackup({
+      format: "english-srs-backup",
+      backupSchemaVersion: 3,
+      exportedAt: "2026-08-14T12:00:00.000Z",
+      appVersion: "0.0.1",
+      curriculumVersion: "test-1",
+      payload: {
+        settings: [{
+          id: "settings", dailyNewConceptQuota: 5, backlogThreshold: 30, suppressNewOnBacklog: true,
+          listeningAudioRatio: 0.3, englishLocale: "en-US",
+        }],
+        unitStates: [], conceptProgress: [], directionStates: [], attempts: [], answerOverrides: [], dailyLedgers: [],
+        curriculumReviewDecisions: [], curriculumReviewUnits: [],
+      },
+    });
+    expect(parsed.payload.settings[0].sessionQuestionLimit).toBe(15);
   });
 
   it("validates before opening a write transaction", async () => {

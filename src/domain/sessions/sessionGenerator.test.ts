@@ -84,6 +84,15 @@ describe("session generation", () => {
     expect(session.every(({ kind }) => kind === "review")).toBe(true);
   });
 
+  it("honors a configurable question limit", () => {
+    const dueReviews = Array.from({ length: 8 }, (_, index) => review(index % concepts.length, index));
+    const session = generateSession({
+      now: 100, dueReviews, newConcepts: [], introducedToday: 0,
+      chunkSize: 6, seed: "configured-limit", capabilities,
+    });
+    expect(session).toHaveLength(6);
+  });
+
   it("unlocks mature listening exercises per directional spoken recall", () => {
     const candidate = review(0, 0, 6);
     candidate.state.successfulSpokenRecall = true;
