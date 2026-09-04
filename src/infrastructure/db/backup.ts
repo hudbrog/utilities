@@ -4,6 +4,7 @@ import { unitDefinitionSchema } from "../../domain/curriculum/schema";
 import { normalizeDirectionState } from "../../domain/scheduler/scheduler";
 import type { EnglishSrsDatabase } from "./database";
 import type { MutableBackupPayload } from "./model";
+import { recoverUnfinishedIntroductions } from "./sessionRepository";
 
 const direction = z.enum(["en-ru", "ru-en"]);
 const exerciseType = z.enum(["mc_text", "stt_text", "mc_audio", "stt_audio"]);
@@ -167,6 +168,7 @@ export async function restoreBackup(db: EnglishSrsDatabase, input: unknown): Pro
         db.answerOverrides.bulkAdd(payload.answerOverrides), db.dailyLedgers.bulkAdd(payload.dailyLedgers),
         db.curriculumReviewDecisions.bulkAdd(payload.curriculumReviewDecisions), db.curriculumReviewUnits.bulkAdd(payload.curriculumReviewUnits),
       ]);
+      await recoverUnfinishedIntroductions(db);
     },
   );
 }

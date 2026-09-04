@@ -5,6 +5,8 @@ import { pauseIntroducingUnit, setIntroducingUnit } from "../infrastructure/db/c
 import {
   approveCleanWords,
   approveReviewUnit,
+  buildReviewUnits,
+  materializeReviewUnit,
   exportReviewApprovals,
   initializeCurriculumReview,
   loadReviewUnits,
@@ -23,6 +25,7 @@ import type {
 } from "../infrastructure/db/model";
 import type { DirectionState } from "../domain/scheduler/model";
 import { resetSttProblemHistory } from "../domain/scheduler/scheduler";
+import { loadCurriculumReviewPackage } from "../infrastructure/curriculum/reviewPackage";
 
 const calendar = createLocalStudyCalendar();
 
@@ -156,12 +159,26 @@ export function inspectLearnerBackup(input: unknown): BackupEnvelope {
 
 export async function importLearnerBackup(input: unknown): Promise<void> {
   const backup = parseBackup(input);
-  await restoreBackup(db, backup);
-  const reviewUnits = await loadReviewUnits(db);
+  // Fetch and validate the complete reconstruction before touching local data.
+  const reviewPackage = await loadCurriculumReviewPackage();
+  const reviewUnits = buildReviewUnits(reviewPackage, backup.payload.curriculumReviewDecisions, backup.payload.curriculumReviewUnits);
   for (const unit of reviewUnits) {
-    if (unit.approvedAt !== null) await approveReviewUnit(db, unit.unit.id, unit.approvedAt);
+    if (unit.approvedAt !== null && unit.unresolvedCount) throw new Error(`Осталось проверить слов: ${unit.unresolvedCount}`);
   }
-  const desiredStateById = new Map(backup.payload.unitStates.map((unit) => [unit.id, unit.state]));
-  const installed = await db.units.toArray();
-  await db.units.bulkPut(installed.map((unit) => ({ ...unit, state: desiredStateById.get(unit.id) ?? "inactive" })));
+  await db.transaction("rw", db.tables, async () => {
+    await restoreBackup(db, backup);
+    for (const unit of reviewUnits) {
+      if (unit.approvedAt !== null) await materializeReviewUnit(db, reviewPackage, unit, unit.approvedAt);
+      else {
+        await db.concepts.where("unitId").equals(unit.unit.id).modify({ retired: true });
+      }
+    }
+    const desiredStateById = new Map(backup.payload.unitStates.map((unit) => [unit.id, unit.state]));
+    const validApprovals = new Set(reviewUnits.filter((unit) => unit.approvedAt !== null).map(({ unit }) => unit.id));
+    const installed = await db.units.toArray();
+    await db.units.bulkPut(installed.map((unit) => ({
+      ...unit,
+      state: validApprovals.has(unit.id) && unit.conceptIds.length ? desiredStateById.get(unit.id) ?? "inactive" : "inactive",
+    })));
+  });
 }

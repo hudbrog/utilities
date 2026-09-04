@@ -9,6 +9,50 @@ import type { Attempt, DailyLedger, PersistedSessionQuestion, StudySession } fro
 export class QuestionAlreadyAnsweredError extends Error {}
 export class SessionStateError extends Error {}
 
+async function isEligibleConcept(db: EnglishSrsDatabase, conceptId: string): Promise<boolean> {
+  const concept = await db.concepts.get(conceptId);
+  if (!concept || concept.retired) return false;
+  const unit = await db.units.get(concept.unitId);
+  return Boolean(unit?.conceptIds.includes(conceptId));
+}
+
+/** Recover directions whose only remaining work was in a discarded introduction queue. */
+export async function recoverUnfinishedIntroductions(db: EnglishSrsDatabase): Promise<void> {
+  await db.transaction("rw", db.conceptProgress, db.directionStates, async () => {
+    const states = new Map((await db.directionStates.toArray()).map((state) => [state.key, state]));
+    const recovered: DirectionState[] = [];
+    for (const progress of await db.conceptProgress.toArray()) {
+      if (progress.introducedAt === null || progress.skipped) continue;
+      for (const direction of ["en-ru", "ru-en"] as const) {
+        const state = states.get(`${progress.conceptId}:${direction}`) ??
+          createDirectionState(progress.conceptId, direction, progress.introducedAt);
+        if (state.nextDueAt === null) {
+          recovered.push({ ...state, nextDueAt: progress.introducedAt });
+        }
+      }
+    }
+    if (recovered.length) await db.directionStates.bulkPut(recovered);
+  });
+}
+
+export async function reconcileResumableSession(db: EnglishSrsDatabase, now: number): Promise<void> {
+  await db.transaction("rw", [db.sessions, db.sessionQuestions, db.concepts, db.units], async () => {
+    const resumable = await readResumableSession(db);
+    if (!resumable) return;
+    const retained: PersistedSessionQuestion[] = [];
+    for (const question of resumable.questions) {
+      if (question.status === "completed" || await isEligibleConcept(db, question.conceptId)) retained.push(question);
+      else await db.sessionQuestions.delete(question.id);
+    }
+    if (retained.length !== resumable.questions.length) {
+      await db.sessionQuestions.bulkPut(retained.map((question, position) => ({ ...question, position })));
+    }
+    if (retained.every((question) => question.status === "completed")) {
+      await db.sessions.put({ ...resumable.session, status: "completed", updatedAt: now });
+    }
+  });
+}
+
 export function persistedQuestionId(sessionId: string, questionId: string): string {
   return `${sessionId}:${questionId}`;
 }
@@ -68,6 +112,7 @@ export async function presentQuestion(
   return db.transaction("rw", [db.sessionQuestions, db.units, db.concepts, db.conceptProgress, db.directionStates, db.dailyLedgers], async () => {
     const question = await db.sessionQuestions.get(questionId);
     if (!question || question.status !== "pending") throw new SessionStateError("Question is not pending");
+    if (!await isEligibleConcept(db, question.conceptId)) throw new SessionStateError("Word is no longer approved for study");
     const current = await db.sessionQuestions.where("[sessionId+status]").equals([question.sessionId, "current"]).first();
     if (current) throw new SessionStateError(`Question ${current.id} is already current`);
 
@@ -122,14 +167,11 @@ export type CommitAnswerInput = {
 export async function commitAnswer(db: EnglishSrsDatabase, input: CommitAnswerInput): Promise<void> {
   await db.transaction(
     "rw",
-    db.attempts,
-    db.directionStates,
-    db.dailyLedgers,
-    db.sessionQuestions,
-    db.sessions,
+    [db.attempts, db.directionStates, db.dailyLedgers, db.sessionQuestions, db.sessions, db.concepts, db.units],
     async () => {
       const question = await db.sessionQuestions.get(input.attempt.questionId);
       if (!question || question.status !== "current") throw new QuestionAlreadyAnsweredError(input.attempt.questionId);
+      if (!await isEligibleConcept(db, question.conceptId)) throw new SessionStateError("Word is no longer approved for study");
       if (await db.attempts.where("questionId").equals(input.attempt.questionId).first()) {
         throw new QuestionAlreadyAnsweredError(input.attempt.questionId);
       }

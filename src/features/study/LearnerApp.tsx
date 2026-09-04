@@ -4,6 +4,7 @@ import { buildMultipleChoiceOptions, type MultipleChoiceOption } from "../../dom
 import { speak } from "../../infrastructure/speech/synthesis";
 import { isAcceptedAnswer } from "../../domain/exercises/matching";
 import { listenOnce, RecognitionError } from "../../infrastructure/speech/recognition";
+import { StudyPrompt } from "./StudyPrompt";
 import {
   goToNextQuestion,
   distractorCurriculum,
@@ -57,15 +58,19 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
   const [busy, setBusy] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [audioError, setAudioError] = useState(false);
+  const [promptAudioError, setPromptAudioError] = useState(false);
   const [sttAttempts, setSttAttempts] = useState<string[][]>([]);
   const [sttMessage, setSttMessage] = useState<string | null>(null);
   const [mcFallback, setMcFallback] = useState(false);
   const actionInFlight = useRef(false);
   const inputLockedUntil = useRef(0);
+  const currentQuestionId = useRef<string | undefined>(undefined);
 
   const replaceSnapshot = useCallback(async (snapshot: StudySnapshot) => {
     setSelectedId(null);
     setAudioError(false);
+    setPromptAudioError(false);
+    currentQuestionId.current = snapshot.current?.id;
     setSttAttempts([]);
     setSttMessage(null);
     setMcFallback(false);
@@ -86,6 +91,16 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
     setBusy(false);
   };
 
+  const playPrompt = useCallback(async (snapshot: StudySnapshot) => {
+    const question = snapshot.current;
+    if (!question) return;
+    try {
+      await speak(promptText(snapshot), question.direction === "en-ru" ? "en-US" : "ru-RU");
+    } catch {
+      if (currentQuestionId.current === question.id) setPromptAudioError(true);
+    }
+  }, []);
+
   useEffect(() => {
     void loadStudy()
       .then((snapshot) => snapshot.current?.status === "revealed" && snapshot.current.revealedOutcome === "correct"
@@ -101,10 +116,9 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
       view.snapshot.current?.status === "current" &&
       view.snapshot.current.exerciseType.endsWith("audio")
     ) {
-      const locale = view.snapshot.current.direction === "en-ru" ? "en-US" : "ru-RU";
-      void speak(promptText(view.snapshot), locale).catch(() => setAudioError(true));
+      void playPrompt(view.snapshot);
     }
-  }, [view]);
+  }, [view, playPrompt]);
 
   const progress = useMemo(() => {
     if (view.status !== "ready") return { completed: 0, total: 0, mistakes: 0 };
@@ -242,12 +256,8 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
           <button className="quiet-button" onClick={openDiagnostics} aria-label="Открыть диагностику">•••</button>
         </header>
 
-        <div className="study-prompt">
-          <p className="study-kicker">{snapshot.current?.direction === "en-ru" ? "Выбери перевод" : "Choose the translation"}</p>
-          {audioPrompt ? (
-            <button className="audio-prompt" onClick={() => void speak(promptText(snapshot), snapshot.current?.direction === "en-ru" ? "en-US" : "ru-RU")}>🔊<span>Послушать ещё раз</span></button>
-          ) : <h1 lang={snapshot.current?.direction === "en-ru" ? "en" : "ru"}>{promptText(snapshot)}</h1>}
-        </div>
+        <StudyPrompt text={promptText(snapshot)} direction={snapshot.current!.direction}
+          audio={Boolean(audioPrompt)} audioFailed={promptAudioError} onReplay={() => void playPrompt(snapshot)} />
 
         {!revealed && speechQuestion ? (
           <div className="speech-answer">

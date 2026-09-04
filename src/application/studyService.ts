@@ -22,6 +22,8 @@ import {
   createStudySession,
   presentQuestion,
   readResumableSession,
+  reconcileResumableSession,
+  recoverUnfinishedIntroductions,
 } from "../infrastructure/db/sessionRepository";
 
 const calendar = createLocalStudyCalendar();
@@ -41,6 +43,7 @@ async function ensureDefaults(now: number): Promise<void> {
 }
 
 async function createNextSession(now: number): Promise<StudySession | null> {
+  await recoverUnfinishedIntroductions(db);
   const settings = await loadLearnerSettings(db);
   const dateKey = calendar.dateKey(now);
   const ledger = await db.dailyLedgers.get(dateKey);
@@ -84,6 +87,7 @@ async function createNextSession(now: number): Promise<StudySession | null> {
 
 export async function loadStudy(now = Date.now()): Promise<StudySnapshot> {
   await ensureDefaults(now);
+  await reconcileResumableSession(db, now);
   let resumable = await readResumableSession(db);
   if (!resumable) {
     const created = await createNextSession(now);

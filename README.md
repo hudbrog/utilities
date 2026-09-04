@@ -32,9 +32,16 @@ The previous math trainer is preserved at [`/utilities/legacy/math-trainer.html`
 
 Requirements: Node.js 24 and Corepack.
 
+With NVM installed (Linux, macOS, or WSL), select the project's Node version first:
+
+```bash
+nvm install
+nvm use
+```
+
 ```bash
 corepack enable
-pnpm install
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 

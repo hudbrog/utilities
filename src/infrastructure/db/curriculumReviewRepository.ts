@@ -75,6 +75,14 @@ export async function initializeCurriculumReview(db: EnglishSrsDatabase, now = D
 export async function loadReviewUnits(db: EnglishSrsDatabase): Promise<ReviewUnitSnapshot[]> {
   const reviewPackage = await initializeCurriculumReview(db);
   const [decisions, approvals] = await Promise.all([db.curriculumReviewDecisions.toArray(), db.curriculumReviewUnits.toArray()]);
+  return buildReviewUnits(reviewPackage, decisions, approvals);
+}
+
+export function buildReviewUnits(
+  reviewPackage: CurriculumReviewPackage,
+  decisions: CurriculumReviewDecision[],
+  approvals: CurriculumReviewUnit[],
+): ReviewUnitSnapshot[] {
   const decisionById = new Map(decisions.map((decision) => [decision.conceptId, decision]));
   const approvalByUnit = new Map(approvals.map((approval) => [approval.unitId, approval]));
   const proposalById = new Map(reviewPackage.proposals.map((proposal) => [proposal.conceptId, proposal]));
@@ -114,21 +122,16 @@ export async function saveReviewDecision(
     acceptedRu: values?.acceptedRu ?? proposal.acceptedRu,
     updatedAt: now,
   };
-  await db.transaction("rw", [db.curriculumReviewDecisions, db.concepts, db.conceptProgress], async () => {
+  await db.transaction("rw", [db.curriculumReviewDecisions, db.concepts, db.conceptProgress, db.units, db.curriculumReviewUnits, db.appMeta], async () => {
     await db.curriculumReviewDecisions.put(decision);
-    const active = await db.concepts.get(conceptId);
-    if (active) {
-      const retired = status === "excluded";
-      if (retired) await db.concepts.put({ ...active, retired: true });
-      else await db.concepts.put({
-        ...active,
-        ru: decision.ru,
-        acceptedEn: uniqueAliases(active.en, decision.acceptedEn, "en"),
-        acceptedRu: uniqueAliases(decision.ru, decision.acceptedRu, "ru"),
-        retired: false,
-      });
-      const progress = await db.conceptProgress.get(conceptId);
-      if (progress) await db.conceptProgress.put({ ...progress, retired });
+    const units = buildReviewUnits(reviewPackage, await db.curriculumReviewDecisions.toArray(), await db.curriculumReviewUnits.toArray());
+    const unit = units.find(({ unit }) => unit.id === proposal.unitId)!;
+    if (unit.approvedAt !== null && unit.unresolvedCount === 0) {
+      await materializeReviewUnit(db, reviewPackage, unit, unit.approvedAt);
+    } else if (await db.concepts.get(conceptId)) {
+      // An unresolved decision must not reactivate an installed target.
+      await db.concepts.update(conceptId, { retired: true });
+      await db.conceptProgress.update(conceptId, { retired: true });
     }
   });
 }
@@ -208,13 +211,29 @@ export async function approveReviewUnit(db: EnglishSrsDatabase, unitId: string, 
   if (unit.unresolvedCount) throw new Error(`Осталось проверить слов: ${unit.unresolvedCount}`);
   const concepts = unit.words.filter(({ status, proposal }) => status !== "excluded" && !proposal.unsuitableReason).map(toConcept);
   if (!concepts.length) throw new Error("В блоке не осталось учебных слов");
+  await materializeReviewUnit(db, reviewPackage, unit, now);
+}
+
+/** Install a resolved approval, including one whose words have all been excluded. No network I/O. */
+export async function materializeReviewUnit(
+  db: EnglishSrsDatabase,
+  reviewPackage: CurriculumReviewPackage,
+  unit: ReviewUnitSnapshot,
+  approvedAt: number,
+): Promise<void> {
+  if (unit.unresolvedCount) throw new Error(`Осталось проверить слов: ${unit.unresolvedCount}`);
+  const concepts = unit.words.filter(({ status, proposal }) => status !== "excluded" && !proposal.unsuitableReason).map(toConcept);
   const activeUnit: UnitDefinition = { id: unit.unit.id, number: unit.unit.number, titleRu: unit.unit.titleRu, conceptIds: concepts.map(({ id }) => id) };
-  const approval: CurriculumReviewUnit = { unitId, reviewFingerprint: unit.unit.reviewFingerprint, approvedAt: now };
+  const approval: CurriculumReviewUnit = { unitId: unit.unit.id, reviewFingerprint: unit.unit.reviewFingerprint, approvedAt };
   await db.transaction("rw", [db.units, db.concepts, db.conceptProgress, db.curriculumReviewUnits, db.appMeta], async () => {
-    const previous = await db.units.get(unitId);
+    const previous = await db.units.get(unit.unit.id);
     const nextConceptIds = new Set(activeUnit.conceptIds);
     const removedConceptIds = previous?.conceptIds.filter((conceptId) => !nextConceptIds.has(conceptId)) ?? [];
-    await db.units.put({ ...activeUnit, state: previous?.state ?? "inactive" });
+    const progress = await db.conceptProgress.bulkGet(activeUnit.conceptIds);
+    const hasUnintroducedWords = progress.some((item) => item?.introducedAt == null);
+    const state = !concepts.length || (previous?.state === "fully_introduced" && hasUnintroducedWords)
+      ? "inactive" : previous?.state ?? "inactive";
+    await db.units.put({ ...activeUnit, state });
     await db.concepts.bulkPut(concepts.map((concept) => ({ ...concept, retired: false })));
     if (activeUnit.conceptIds.length) await db.conceptProgress.where("conceptId").anyOf(activeUnit.conceptIds).modify({ retired: false });
     if (removedConceptIds.length) {
@@ -222,8 +241,8 @@ export async function approveReviewUnit(db: EnglishSrsDatabase, unitId: string, 
       await db.conceptProgress.where("conceptId").anyOf(removedConceptIds).modify({ retired: true });
     }
     await db.curriculumReviewUnits.put(approval);
-    await db.appMeta.put({ key: "curriculumVersion", value: reviewPackage.curriculumVersion, updatedAt: now });
-    await db.appMeta.put({ key: "sourceFingerprint", value: reviewPackage.sourceFingerprint, updatedAt: now });
+    await db.appMeta.put({ key: "curriculumVersion", value: reviewPackage.curriculumVersion, updatedAt: approvedAt });
+    await db.appMeta.put({ key: "sourceFingerprint", value: reviewPackage.sourceFingerprint, updatedAt: approvedAt });
   });
 }
 
