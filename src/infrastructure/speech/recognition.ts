@@ -47,39 +47,96 @@ export async function installLocalLanguage(locale: SpeechLocale) {
   return Recognition.install({ langs: [locale], processLocally: true });
 }
 
-export function listenOnce(
-  locale: SpeechLocale,
-  options: { localOnly: boolean; timeoutMs?: number },
-): Promise<RecognitionOutcome> {
-  const Recognition = getRecognitionConstructor();
-  if (!Recognition) {
-    return Promise.reject(new RecognitionError("not-supported"));
-  }
+export type RecognitionPhase = "starting" | "listening" | "processing";
 
-  const recognition = new Recognition();
-  const supportsLocalOnly = "processLocally" in recognition;
-  recognition.lang = locale;
-  recognition.continuous = false;
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 5;
-  if (supportsLocalOnly && options.localOnly) recognition.processLocally = true;
+export type ListenOptions = {
+  localOnly: boolean;
+  timeoutMs?: number;
+  onPhaseChange?: (phase: RecognitionPhase) => void;
+};
 
-  return new Promise((resolve, reject) => {
+export type RecognitionSession = {
+  result: Promise<RecognitionOutcome>;
+  /** Finish capture and ask the recognizer for the recorded answer. */
+  stop: () => void;
+  /** Discard the answer and release the microphone. */
+  cancel: () => void;
+};
+
+export function startListening(locale: SpeechLocale, options: ListenOptions): RecognitionSession {
+  let stop = () => {};
+  let cancel = () => {};
+  const result = new Promise<RecognitionOutcome>((resolve, reject) => {
+    const Recognition = getRecognitionConstructor();
+    if (!Recognition) {
+      reject(new RecognitionError("not-supported"));
+      return;
+    }
+    const recognition = new Recognition();
+    const supportsLocalOnly = "processLocally" in recognition;
+    recognition.lang = locale;
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 5;
+    if (supportsLocalOnly && options.localOnly) recognition.processLocally = true;
     let settled = false;
+    let stopping = false;
     const alternatives: RecognitionAlternative[] = [];
-    const timeout = window.setTimeout(() => {
-      recognition.abort();
-      finish(() => reject(new RecognitionError("timeout", "Распознавание не завершилось вовремя")));
-    }, options.timeoutMs ?? 15_000);
-
+    let timeout: number;
     const finish = (complete: () => void) => {
       if (settled) return;
       settled = true;
       window.clearTimeout(timeout);
+      recognition.onstart = null;
+      recognition.onaudioend = null;
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
       complete();
     };
 
+    const abort = () => {
+      try { recognition.abort(); } catch { /* Already stopped by the browser. */ }
+    };
+    cancel = () => {
+      if (settled) return;
+      finish(() => reject(new RecognitionError("aborted")));
+      abort();
+    };
+    stop = () => {
+      if (settled || stopping) return;
+      stopping = true;
+      options.onPhaseChange?.("processing");
+      try {
+        recognition.stop();
+      } catch (error) {
+        finish(() => reject(error));
+        abort();
+      }
+    };
+    timeout = window.setTimeout(() => {
+      finish(() => reject(new RecognitionError("timeout", "Распознавание не завершилось вовремя")));
+      abort();
+    }, options.timeoutMs ?? 15_000);
+
+    const completeResult = () => {
+      const unique = alternatives.filter(
+        (item, index, all) => item.transcript && all.findIndex((candidate) => candidate.transcript === item.transcript) === index,
+      );
+      finish(() => {
+        if (unique.length === 0) reject(new RecognitionError("no-result"));
+        else resolve({ alternatives: unique, localOnlyApplied: supportsLocalOnly && options.localOnly });
+      });
+    };
+
+    recognition.onstart = () => {
+      if (!settled && !stopping) options.onPhaseChange?.("listening");
+    };
+    recognition.onaudioend = () => {
+      if (!settled) options.onPhaseChange?.("processing");
+    };
     recognition.onresult = (event) => {
+      if (settled) return;
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
         const result = event.results.item(i);
         if (!result.isFinal) continue;
@@ -88,26 +145,32 @@ export function listenOnce(
           alternatives.push({ transcript: item.transcript.trim(), confidence: item.confidence });
         }
       }
+      if (alternatives.length > 0) {
+        // One-shot recognition has a single final result. Do not wait for onend.
+        const needsStop = !stopping;
+        completeResult();
+        if (needsStop) {
+          try { recognition.stop(); } catch { abort(); }
+        }
+      }
     };
 
     recognition.onerror = (event) => {
       finish(() => reject(new RecognitionError(event.error, event.message)));
     };
 
-    recognition.onend = () => {
-      finish(() => {
-        const unique = alternatives.filter(
-          (item, index, all) => all.findIndex((candidate) => candidate.transcript === item.transcript) === index,
-        );
-        if (unique.length === 0) reject(new RecognitionError("no-result"));
-        else resolve({ alternatives: unique, localOnlyApplied: supportsLocalOnly && options.localOnly });
-      });
-    };
+    recognition.onend = completeResult;
 
     try {
+      options.onPhaseChange?.("starting");
       recognition.start();
     } catch (error) {
       finish(() => reject(error));
     }
   });
+  return { result, stop: () => stop(), cancel: () => cancel() };
+}
+
+export function listenOnce(locale: SpeechLocale, options: ListenOptions): Promise<RecognitionOutcome> {
+  return startListening(locale, options).result;
 }

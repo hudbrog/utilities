@@ -3,8 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buildMultipleChoiceOptions, type MultipleChoiceOption } from "../../domain/exercises/distractors";
 import { speak } from "../../infrastructure/speech/synthesis";
 import { isAcceptedAnswer } from "../../domain/exercises/matching";
-import { listenOnce, RecognitionError } from "../../infrastructure/speech/recognition";
+import { RecognitionError } from "../../infrastructure/speech/recognition";
 import { StudyPrompt } from "./StudyPrompt";
+import { useSpeechRecognition } from "../useSpeechRecognition";
 import {
   goToNextQuestion,
   distractorCurriculum,
@@ -62,6 +63,7 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
   const [sttAttempts, setSttAttempts] = useState<string[][]>([]);
   const [sttMessage, setSttMessage] = useState<string | null>(null);
   const [mcFallback, setMcFallback] = useState(false);
+  const recognition = useSpeechRecognition();
   const actionInFlight = useRef(false);
   const inputLockedUntil = useRef(0);
   const currentQuestionId = useRef<string | undefined>(undefined);
@@ -164,10 +166,11 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
 
   const listen = async () => {
     if (view.status !== "ready" || !view.snapshot.current || !view.snapshot.concept || !beginAction()) return;
-    setSttMessage("Слушаю…");
+    setSttMessage(null);
     try {
       const locale = view.snapshot.current.direction === "en-ru" ? "ru-RU" : "en-US";
-      const result = await listenOnce(locale, { localOnly: false });
+      const result = await recognition.listen(locale, { localOnly: false });
+      setSttMessage("Проверяю ответ…");
       const transcripts = result.alternatives.map(({ transcript }) => transcript);
       const history = [...sttAttempts, transcripts];
       setSttAttempts(history);
@@ -185,6 +188,11 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
       }
     } catch (error) {
       const code = error instanceof RecognitionError ? error.code : "adapter-error";
+      if (code === "aborted") return;
+      if (code === "no-result" || code === "no-speech") {
+        setSttMessage("Ничего не услышала. Нажми на микрофон и попробуй ещё раз.");
+        return;
+      }
       setSttMessage(code === "not-allowed" ? "Микрофон недоступен. Можно выбрать ответ." : "Речь сейчас не распознаётся. Попробуй ещё раз или выбери ответ.");
       setMcFallback(true);
     } finally {
@@ -245,6 +253,13 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
   const currentNumber = Math.min(progress.completed + 1, progress.total);
   const speechQuestion = snapshot.current?.exerciseType.startsWith("stt_") && !mcFallback;
   const audioPrompt = snapshot.current?.exerciseType.endsWith("audio");
+  const canStopListening = recognition.phase === "starting" || recognition.phase === "listening";
+  const recognitionMessage = {
+    idle: sttMessage ?? "Нажми и скажи перевод",
+    starting: "Включаю микрофон…",
+    listening: "Слушаю… Закончил? Нажми «Готово».",
+    processing: "Обрабатываю… Микрофон уже выключен.",
+  }[recognition.phase];
   return (
     <main className="study-shell">
       <section className={`study-card ${revealed ? correct ? "study-card--correct" : "study-card--incorrect" : ""}`}>
@@ -261,10 +276,15 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
 
         {!revealed && speechQuestion ? (
           <div className="speech-answer">
-            <button className={busy ? "microphone-button microphone-button--active" : "microphone-button"} disabled={busy} onClick={() => void listen()} aria-label="Ответить голосом">🎙</button>
-            <p aria-live="polite">{sttMessage ?? "Нажми и скажи перевод"}</p>
+            <button className={canStopListening ? "microphone-button microphone-button--active" : "microphone-button"}
+              disabled={busy && !canStopListening} onClick={canStopListening ? recognition.stop : () => void listen()}
+              aria-label={canStopListening ? "Закончить ответ" : "Ответить голосом"} aria-pressed={canStopListening}>
+              <span aria-hidden="true">{canStopListening ? "■" : recognition.phase === "processing" ? "…" : "🎙"}</span>
+              <span className="microphone-button__label">{canStopListening ? "Готово" : recognition.phase === "processing" ? "Жду ответ" : "Ответить"}</span>
+            </button>
+            <p aria-live="polite">{recognitionMessage}</p>
             <small>Попытка {Math.min(sttAttempts.length + 1, 3)} из 3</small>
-            {sttAttempts.length > 0 && <button className="text-button" onClick={() => setMcFallback(true)}>Выбрать ответ</button>}
+            {sttAttempts.length > 0 && <button className="text-button" disabled={busy} onClick={() => setMcFallback(true)}>Выбрать ответ</button>}
           </div>
         ) : !revealed ? (
           <div className="choice-list">

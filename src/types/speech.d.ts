@@ -39,6 +39,7 @@ interface BrowserSpeechRecognition extends EventTarget {
   maxAlternatives: number;
   processLocally?: boolean;
   onstart: (() => void) | null;
+  onaudioend: (() => void) | null;
   onresult: ((event: BrowserSpeechRecognitionEvent) => void) | null;
   onerror: ((event: BrowserSpeechRecognitionErrorEvent) => void) | null;
   onend: (() => void) | null;

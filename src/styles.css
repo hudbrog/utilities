@@ -668,8 +668,20 @@ footer a {
   border-radius: 42px;
   cursor: pointer;
   font-size: 3.2rem;
+  padding: 12px;
+  line-height: 1;
   box-shadow: 0 18px 42px rgb(31 111 120 / 28%);
   transition: transform 120ms ease;
+}
+
+.microphone-button__label {
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.microphone-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .microphone-button:active {

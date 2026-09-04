@@ -4,12 +4,12 @@ import {
   getRecognitionConstructor,
   hasLocalRecognitionApi,
   installLocalLanguage,
-  listenOnce,
   RecognitionError,
   type RecognitionAlternative,
   type SpeechLocale,
 } from "../../infrastructure/speech/recognition";
 import { speak } from "../../infrastructure/speech/synthesis";
+import { useSpeechRecognition } from "../useSpeechRecognition";
 
 export type SpeechDiagnostic = {
   locale: SpeechLocale;
@@ -43,7 +43,9 @@ const errorLabels: Record<string, string> = {
 
 export function SpeechTestCard({ locale, heading, recognitionPrompt, ttsText, onDiagnostic }: Props) {
   const localApi = hasLocalRecognitionApi();
-  const [listening, setListening] = useState(false);
+  const recognition = useSpeechRecognition();
+  const listening = recognition.phase !== "idle";
+  const canStopListening = recognition.phase === "starting" || recognition.phase === "listening";
   const [localOnly, setLocalOnly] = useState(localApi);
   const [alternatives, setAlternatives] = useState<RecognitionAlternative[]>([]);
   const [message, setMessage] = useState("Ещё не проверено");
@@ -51,11 +53,10 @@ export function SpeechTestCard({ locale, heading, recognitionPrompt, ttsText, on
   const [voice, setVoice] = useState<string | null>(null);
 
   const testRecognition = async () => {
-    setListening(true);
     setAlternatives([]);
     setMessage("Слушаю…");
     try {
-      const outcome = await listenOnce(locale, { localOnly });
+      const outcome = await recognition.listen(locale, { localOnly });
       setAlternatives(outcome.alternatives);
       setMessage(outcome.localOnlyApplied ? "Получен локальный результат" : "Получен результат");
       onDiagnostic({
@@ -66,11 +67,10 @@ export function SpeechTestCard({ locale, heading, recognitionPrompt, ttsText, on
       });
     } catch (error) {
       const code = error instanceof RecognitionError ? error.code : "start-error";
+      if (code === "aborted") return;
       const label = errorLabels[code] ?? (error instanceof Error ? error.message : String(error));
       setMessage(label);
       onDiagnostic({ locale, occurredAt: new Date().toISOString(), error: code });
-    } finally {
-      setListening(false);
     }
   };
 
@@ -114,7 +114,7 @@ export function SpeechTestCard({ locale, heading, recognitionPrompt, ttsText, on
           <p className="locale">{locale}</p>
           <h3>{heading}</h3>
         </div>
-        <span className={`listening-dot${listening ? " listening-dot--active" : ""}`} aria-hidden="true" />
+        <span className={`listening-dot${canStopListening ? " listening-dot--active" : ""}`} aria-hidden="true" />
       </div>
 
       <p className="test-phrase">
@@ -123,7 +123,7 @@ export function SpeechTestCard({ locale, heading, recognitionPrompt, ttsText, on
 
       {localApi ? (
         <label className="toggle-row">
-          <input checked={localOnly} onChange={(event) => setLocalOnly(event.target.checked)} type="checkbox" />
+          <input checked={localOnly} disabled={listening} onChange={(event) => setLocalOnly(event.target.checked)} type="checkbox" />
           Требовать локальное распознавание
         </label>
       ) : (
@@ -131,10 +131,11 @@ export function SpeechTestCard({ locale, heading, recognitionPrompt, ttsText, on
       )}
 
       <div className="button-row">
-        <button className="button button--primary" disabled={!getRecognitionConstructor() || listening} onClick={() => void testRecognition()} type="button">
-          {listening ? "Слушаю…" : "🎙 Проверить STT"}
+        <button className="button button--primary" disabled={!getRecognitionConstructor() || recognition.phase === "processing"}
+          onClick={canStopListening ? recognition.stop : () => void testRecognition()} type="button">
+          {canStopListening ? "■ Готово" : recognition.phase === "processing" ? "Обрабатываю…" : "🎙 Проверить STT"}
         </button>
-        <button className="button button--secondary" onClick={() => void testTts()} type="button">
+        <button className="button button--secondary" disabled={listening} onClick={() => void testTts()} type="button">
           🔊 Проверить TTS
         </button>
       </div>
@@ -147,7 +148,9 @@ export function SpeechTestCard({ locale, heading, recognitionPrompt, ttsText, on
       )}
 
       <div className="speech-result" aria-live="polite">
-        <strong>{message}</strong>
+        <strong>{recognition.phase === "starting" ? "Включаю микрофон…"
+          : recognition.phase === "listening" ? "Слушаю… Нажмите «Готово», когда закончите."
+          : recognition.phase === "processing" ? "Обрабатываю… Микрофон уже выключен." : message}</strong>
         {availability && <span>Локальный пакет: {availability}</span>}
         {voice && <span>Голос: {voice}</span>}
         {alternatives.length > 0 && (
