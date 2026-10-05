@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Тренажёр по математике с «фейерверками»</title>
   <style>
     body {
@@ -31,6 +32,16 @@
     #config input[type="checkbox"] {
       transform: scale(1.5);
       margin-right: 8px;
+    }
+    #config select {
+      font-size: 1em;
+      max-width: 100%;
+    }
+    #configError {
+      color: red;
+    }
+    .input-hint {
+      font-size: 0.8em;
     }
     #config button {
       font-size: 1.2em;
@@ -116,6 +127,36 @@
       text-align: center;
       margin-left: 10px;
     }
+    #digitKeypad {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      max-width: 300px;
+      margin-top: 20px;
+    }
+    #digitKeypad:not(.hidden) {
+      display: grid;
+    }
+    #digitKeypad button {
+      font-size: 1em;
+      min-height: 60px;
+      border: none;
+      border-radius: 10px;
+      background-color: #2196F3;
+      color: #fff;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    #digitKeypad button[data-digit="0"] {
+      grid-column: 2;
+    }
+    #digitKeypad button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    #feedback {
+      display: block;
+      margin: 10px 0 0;
+    }
     h1 {
       font-size: 2em;
       margin-bottom: 10px;
@@ -139,7 +180,7 @@
       height: 10px;
       background-color: red;
       border-radius: 50%;
-      animation: confetti-firework 1.5s ease-out forwards;
+      animation: confetti-firework var(--confetti-duration, 800ms) ease-out forwards;
     }
 
     @keyframes confetti-firework {
@@ -170,6 +211,20 @@
     <input type="number" id="max2" value="9">
   </label>
   <label>
+    <input type="checkbox" id="limitResult"> Ограничить результат
+  </label>
+  <label>Диапазон результата:
+    <input type="number" id="minResult" value="1" aria-label="Минимальный результат" disabled> до
+    <input type="number" id="maxResult" value="9" aria-label="Максимальный результат" disabled>
+  </label>
+  <label>Ввод ответа:
+    <select id="answerMode" aria-describedby="answerModeHint">
+      <option value="typed">Поле ввода</option>
+      <option value="keypad">Кнопки 0–9</option>
+    </select>
+  </label>
+  <p id="answerModeHint" class="input-hint">Кнопки сразу проверяют ответ. Для ответов вне диапазона 0–9 используется поле ввода.</p>
+  <label>
     <input type="checkbox" id="opAdd" checked> Сложение (+)
   </label>
   <label>
@@ -190,6 +245,7 @@
   <br>
   <button id="showStatsBtn">Показать статистику</button>
   <button id="startBtn">Начать</button>
+  <p id="configError" role="alert"></p>
 
   <!-- Stats container -->
   <div id="stats">
@@ -217,9 +273,23 @@
     <span>Задача <span id="currentCount">0</span> / <span id="totalCount">0</span>:</span>
     <br><br>
     <span id="problemText"></span> =
-    <input type="number" id="userAnswer">
-    <button id="submitAnswerBtn">Проверить</button>
-    <span id="feedback" class="error"></span>
+    <span id="typedAnswerControls">
+      <input type="number" id="userAnswer" aria-label="Ответ">
+      <button id="submitAnswerBtn">Проверить</button>
+    </span>
+    <div id="digitKeypad" class="hidden" role="group" aria-label="Ответ: кнопки от 0 до 9">
+      <button type="button" data-digit="1">1</button>
+      <button type="button" data-digit="2">2</button>
+      <button type="button" data-digit="3">3</button>
+      <button type="button" data-digit="4">4</button>
+      <button type="button" data-digit="5">5</button>
+      <button type="button" data-digit="6">6</button>
+      <button type="button" data-digit="7">7</button>
+      <button type="button" data-digit="8">8</button>
+      <button type="button" data-digit="9">9</button>
+      <button type="button" data-digit="0">0</button>
+    </div>
+    <span id="feedback" class="error" role="status"></span>
   </div>
 </div>
 
@@ -254,12 +324,20 @@
   const statsTable = document.getElementById('statsBody');
   const clearStatsBtn = document.getElementById('clearStatsBtn');
   const timeTakenEl = document.getElementById('timeTaken');
+  const typedAnswerControls = document.getElementById('typedAnswerControls');
+  const digitKeypad = document.getElementById('digitKeypad');
+  const digitButtons = digitKeypad.querySelectorAll('button');
+  const configError = document.getElementById('configError');
 
   // Config fields
   const min1El = document.getElementById('min1');
   const max1El = document.getElementById('max1');
   const min2El = document.getElementById('min2');
   const max2El = document.getElementById('max2');
+  const limitResultEl = document.getElementById('limitResult');
+  const minResultEl = document.getElementById('minResult');
+  const maxResultEl = document.getElementById('maxResult');
+  const answerModeEl = document.getElementById('answerMode');
   const opAddEl = document.getElementById('opAdd');
   const opSubEl = document.getElementById('opSub');
   const numProblemsEl = document.getElementById('numProblems');
@@ -273,6 +351,11 @@
   let totalToSolve = 0; // total # of problems to solve
   let solvedCount = 0;  // how many have been solved
   let startTime = 0;    // track start time for this session
+  let awaitingAnswer = false;
+  let usingKeypad = false;
+  const answerDelay = 300;
+  const confettiDuration = 800;
+  const finishConfettiDuration = 1500;
 
   // Load/Save Stats
   function loadStats() {
@@ -321,10 +404,12 @@
 
   // Build a full set of possible problems based on config
   function buildAllPossibleProblems() {
-    const min1 = parseInt(min1El.value, 10);
-    const max1 = parseInt(max1El.value, 10);
-    const min2 = parseInt(min2El.value, 10);
-    const max2 = parseInt(max2El.value, 10);
+    const min1 = Number(min1El.value);
+    const max1 = Number(max1El.value);
+    const min2 = Number(min2El.value);
+    const max2 = Number(max2El.value);
+    const minResult = Number(minResultEl.value);
+    const maxResult = Number(maxResultEl.value);
 
     let ops = [];
     if (opAddEl.checked) ops.push('+');
@@ -369,8 +454,11 @@
       }
     }
 
-    // Filter based on crossing rules
+    // Apply the result range alongside the crossing rules.
     allProblems = allProblems.filter(p => {
+      if (limitResultEl.checked && (p.correctAnswer < minResult || p.correctAnswer > maxResult)) {
+        return false;
+      }
       if (p.crosses) {
         // If it crosses, keep only if allowCross is checked
         return allowCross;
@@ -418,7 +506,7 @@
     all.sort((a, b) => a.ratio - b.ratio);
 
     // now pick the top N from sorted
-    let num = parseInt(numProblemsEl.value, 10);
+    let num = Number(numProblemsEl.value);
     if (num > all.length) {
       num = all.length;
     }
@@ -428,13 +516,28 @@
     problems = shuffle(selected);
   }
 
-  // Show the current problem
+  // Lock all answer controls while moving to the next problem.
+  function setAnswerControlsDisabled(disabled) {
+    userAnswer.disabled = disabled;
+    submitAnswerBtn.disabled = disabled;
+    digitButtons.forEach(button => { button.disabled = disabled; });
+  }
+
   function showProblem() {
     if (currentIndex < problems.length) {
       let p = problems[currentIndex];
       problemText.textContent = p.operand1 + ' ' + p.operator + ' ' + p.operand2;
       userAnswer.value = '';
-      userAnswer.focus();
+      usingKeypad = answerModeEl.value === 'keypad' && p.correctAnswer >= 0 && p.correctAnswer <= 9;
+      typedAnswerControls.classList.toggle('hidden', usingKeypad);
+      digitKeypad.classList.toggle('hidden', !usingKeypad);
+      awaitingAnswer = true;
+      setAnswerControlsDisabled(false);
+      if (usingKeypad) {
+        digitButtons[0].focus();
+      } else {
+        userAnswer.focus();
+      }
       feedback.textContent = '';
       currentCountEl.textContent = solvedCount + 1; // next to solve
       totalCountEl.textContent = totalToSolve;
@@ -442,7 +545,7 @@
   }
 
   // Show fireworks effect in 5 random locations
-  function showConfetti(count = 100, duration = 1500) {
+  function showConfetti(count = 100, duration = confettiDuration) {
     // We'll do 5 small fireworks bursts at random screen locations.
     // total confetti pieces = count.
     // So each burst gets count/5 pieces.
@@ -452,6 +555,8 @@
 
     const container = document.createElement('div');
     container.classList.add('confetti-container');
+    const maxDelay = 100;
+    container.style.setProperty('--confetti-duration', (duration - maxDelay) + 'ms');
     document.body.appendChild(container);
 
     // viewport dimensions
@@ -486,7 +591,7 @@
         confettiPiece.style.setProperty('--endy', endY + 'px');
 
         // random delay so they don't all animate simultaneously
-        const delay = (Math.random() * 0.5).toFixed(2) + 's';
+        const delay = Math.floor(Math.random() * maxDelay) + 'ms';
         confettiPiece.style.animationDelay = delay;
 
         // random size
@@ -508,13 +613,19 @@
 
   // When user clicks 'Check'
   function checkAnswer() {
-    let userValue = parseInt(userAnswer.value, 10);
+    if (!awaitingAnswer || userAnswer.value.trim() === '') return;
+    const userValue = Number(userAnswer.value);
+    if (!Number.isInteger(userValue)) return;
     let currentProblem = problems[currentIndex];
+    if (!currentProblem) return;
+    logResult(currentProblem, userValue, userValue === currentProblem.correctAnswer);
 
     if (userValue === currentProblem.correctAnswer) {
+      awaitingAnswer = false;
+      setAnswerControlsDisabled(true);
       feedback.textContent = 'Верно!';
       // fireworks for correct answer (small)
-      showConfetti(50, 1500);
+      showConfetti(50);
 
       // update stats
       updateStats(currentProblem, true);
@@ -529,7 +640,7 @@
         } else {
           finish();
         }
-      }, 500);
+      }, answerDelay);
     } else {
       feedback.textContent = 'Неправильно. Попробуй ещё раз.';
       // update stats
@@ -545,12 +656,13 @@
 
   // When all problems solved
   function finish() {
+    awaitingAnswer = false;
     problemContainer.classList.add('hidden');
     congrats.classList.remove('hidden');
     toggleLogBtn.classList.remove('hidden');
 
     // bigger fireworks at finish
-    showConfetti(300, 3000);
+    showConfetti(300, finishConfettiDuration);
 
     // end time
     const endTime = new Date();
@@ -558,14 +670,37 @@
     timeTakenEl.textContent = durationSeconds;
   }
 
-  // Start button handler
+  // Keep invalid or impossible settings in the configuration panel.
+  function validateConfig() {
+    const fields = [min1El, max1El, min2El, max2El, numProblemsEl];
+    if (limitResultEl.checked) fields.push(minResultEl, maxResultEl);
+    if (fields.some(field => field.value.trim() === '' || !Number.isSafeInteger(Number(field.value)))) {
+      return 'Заполни настройки целыми числами.';
+    }
+    if (Number(min1El.value) > Number(max1El.value) || Number(min2El.value) > Number(max2El.value)) {
+      return 'Начало диапазона числа должно быть не больше конца.';
+    }
+    if (limitResultEl.checked && Number(minResultEl.value) > Number(maxResultEl.value)) {
+      return 'Минимальный результат должен быть не больше максимального.';
+    }
+    if (Number(numProblemsEl.value) < 1) return 'Количество задач должно быть больше нуля.';
+    if (!opAddEl.checked && !opSubEl.checked) return 'Выбери сложение или вычитание.';
+    return '';
+  }
+
   function startTraining() {
+    configError.textContent = validateConfig();
+    if (configError.textContent) return;
     // Reset internal state
     currentIndex = 0;
     solvedCount = 0;
 
     generateProblems();
     totalToSolve = problems.length;
+    if (totalToSolve === 0) {
+      configError.textContent = 'Нет задач с такими настройками. Измени диапазоны или условия перехода через десяток.';
+      return;
+    }
 
     // Hide config
     configEl.classList.add('hidden');
@@ -673,18 +808,33 @@
   }
 
   // Wire up buttons
+  limitResultEl.addEventListener('change', () => {
+    minResultEl.disabled = !limitResultEl.checked;
+    maxResultEl.disabled = !limitResultEl.checked;
+  });
   startBtn.addEventListener('click', startTraining);
-  submitAnswerBtn.addEventListener('click', () => {
-    let currentProblem = problems[currentIndex];
-    logResult(currentProblem, userAnswer.value, (parseInt(userAnswer.value, 10) === currentProblem.correctAnswer));
-    checkAnswer();
+  submitAnswerBtn.addEventListener('click', checkAnswer);
+  digitButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      if (!awaitingAnswer || !usingKeypad) return;
+      userAnswer.value = button.dataset.digit;
+      checkAnswer();
+    });
   });
 
   // Also allow pressing Enter to check answer
   userAnswer.addEventListener('keyup', (e) => {
     if (e.key === 'Enter') {
-      let currentProblem = problems[currentIndex];
-      logResult(currentProblem, userAnswer.value, (parseInt(userAnswer.value, 10) === currentProblem.correctAnswer));
+      checkAnswer();
+    }
+  });
+
+  // Physical number keys also submit single-digit answers in keypad mode.
+  document.addEventListener('keydown', (e) => {
+    if (!awaitingAnswer || !usingKeypad || e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
+    if (/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+      userAnswer.value = e.key;
       checkAnswer();
     }
   });
