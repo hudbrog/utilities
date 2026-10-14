@@ -21,6 +21,7 @@ beforeEach(() => {
 afterEach(() => {
   dom.window.close();
   vi.clearAllTimers();
+  vi.restoreAllMocks();
   vi.useRealTimers();
 });
 
@@ -172,4 +173,74 @@ test("typed mode still accepts Enter and ignores empty or fractional answers", (
   field("userAnswer", 5);
   input.dispatchEvent(new dom.window.KeyboardEvent("keyup", { key: "Enter", bubbles: true }));
   expect(stats()["5 + 0"]).toEqual({ attempts: 1, correct: 1 });
+});
+
+function configureCrossingSession() {
+  field("max1", 99);
+  field("max2", 99);
+  checkbox("limitResult", true);
+  field("maxResult", 99);
+  checkbox("onlyCrossTens", true);
+  field("numProblems", 30);
+}
+
+function problemKey(problem) {
+  return `${problem.operand1} ${problem.operator} ${problem.operand2}`;
+}
+
+function previousSmallResultMistakes() {
+  const eligible = possibleProblems().filter(p => p.operand1 <= 19 && p.operand2 <= 19 && p.correctAnswer < 10);
+  return Object.fromEntries(eligible.slice(0, 12).map(p => [problemKey(p), { attempts: 2, correct: 1 }]));
+}
+
+function seededRandom() {
+  let state = 123456789;
+  return () => {
+    state = (Math.imul(1664525, state) + 1013904223) >>> 0;
+    return state / 2 ** 32;
+  };
+}
+
+test("crossing-tens exercises appear once, with no extra weight for subtraction", () => {
+  configureCrossingSession();
+  const eligible = possibleProblems();
+  expect(eligible).toHaveLength(4050);
+  expect(new Set(eligible.map(problemKey)).size).toBe(eligible.length);
+  expect(eligible.filter(p => p.operator === "+")).toHaveLength(2025);
+  expect(eligible.filter(p => p.operator === "-")).toHaveLength(2025);
+  expect(eligible.filter(p => p.correctAnswer < 10)).toHaveLength(405);
+  field("numProblems", 10000);
+  dom.window.eval("generateProblems()");
+  const selected = dom.window.eval("problems");
+  expect(selected).toHaveLength(eligible.length);
+  expect(new Set(selected.map(problemKey)).size).toBe(selected.length);
+});
+
+test("default random selection is independent of saved mistakes from small-result training", () => {
+  configureCrossingSession();
+  expect(document.getElementById("prioritizeErrors").checked).toBe(false);
+  const random = vi.spyOn(dom.window.Math, "random").mockImplementation(seededRandom());
+  dom.window.eval("generateProblems()");
+  const withoutHistory = dom.window.eval("problems").map(problemKey);
+  const history = previousSmallResultMistakes();
+  dom.window.localStorage.setItem("mathTrainerStats", JSON.stringify(history));
+  random.mockImplementation(seededRandom());
+  dom.window.eval("generateProblems()");
+  expect(dom.window.eval("problems").map(problemKey)).toEqual(withoutHistory);
+  expect(stats()).toEqual(history);
+});
+
+test("explicit error priority includes previously missed exercises once each", () => {
+  configureCrossingSession();
+  const history = previousSmallResultMistakes();
+  expect(Object.keys(history)).toHaveLength(12);
+  dom.window.localStorage.setItem("mathTrainerStats", JSON.stringify(history));
+  checkbox("prioritizeErrors", true);
+  dom.window.eval("generateProblems()");
+  const selected = dom.window.eval("problems").map(problemKey);
+  expect(selected).toHaveLength(30);
+  expect(new Set(selected).size).toBe(30);
+  for (const key of Object.keys(history)) {
+    expect(selected.filter(candidate => candidate === key)).toHaveLength(1);
+  }
 });
