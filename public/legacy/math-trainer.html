@@ -242,6 +242,9 @@
   <label>
     <input type="checkbox" id="incorrectCounts"> Неправильный ответ засчитывается
   </label>
+  <label>
+    <input type="checkbox" id="prioritizeErrors"> Приоритет задач с ошибками (по статистике)
+  </label>
   <br>
   <button id="showStatsBtn">Показать статистику</button>
   <button id="startBtn">Начать</button>
@@ -343,6 +346,7 @@
   const numProblemsEl = document.getElementById('numProblems');
   const allowCrossTensEl = document.getElementById('allowCrossTens');
   const incorrectCountsEl = document.getElementById('incorrectCounts');
+  const prioritizeErrorsEl = document.getElementById('prioritizeErrors');
   const onlyCrossTensEl = document.getElementById('onlyCrossTens'); // Added
 
   // Internal state
@@ -468,10 +472,14 @@
       }
     });
 
-    return allProblems;
+    // Swapping subtraction operands can produce the same exercise twice.
+    // Keep each displayed exercise once so it has one chance to be selected.
+    return [...new Map(allProblems.map(p => [
+      `${p.operand1} ${p.operator} ${p.operand2}`, p
+    ])).values()];
   }
 
-  // Use local storage stats to find the problems with the worst success ratio
+  // Choose random exercises, optionally prioritizing past mistakes.
   function generateProblems() {
     let all = buildAllPossibleProblems();
 
@@ -483,27 +491,19 @@
       }
       return array;
     }
-    const stats = loadStats();
-
-    // for each problem in all, get success ratio
-    all.forEach(p => {
-      const key = `${p.operand1} ${p.operator} ${p.operand2}`;
-      if (!stats[key]) {
-        p.ratio = 1.0; // if never tried, assume 100% success
-      } else {
-        const st = stats[key];
-        const attempts = st.attempts;
-        const correct = st.correct;
-        p.ratio = attempts > 0 ? (correct / attempts) : 1.0;
-      }
-    });
-
-    // Shuffle the entire list BEFORE sorting by ratio.
-    // This randomizes the order of problems with the same success ratio.
+    // Without error priority, sampling is uniform over eligible exercises.
+    // With it enabled, shuffling randomizes ties in the success ratios.
     all = shuffle(all);
 
-    // sort ascending by ratio (lowest ratio = worst success => appear first)
-    all.sort((a, b) => a.ratio - b.ratio);
+    if (prioritizeErrorsEl.checked) {
+      const stats = loadStats();
+      all.forEach(p => {
+        const key = `${p.operand1} ${p.operator} ${p.operand2}`;
+        const st = stats[key];
+        p.ratio = st && st.attempts > 0 ? st.correct / st.attempts : 1.0;
+      });
+      all.sort((a, b) => a.ratio - b.ratio);
+    }
 
     // now pick the top N from sorted
     let num = Number(numProblemsEl.value);
