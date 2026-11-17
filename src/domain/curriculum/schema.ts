@@ -6,7 +6,7 @@ const nonEmptyText = z.string().trim().min(1);
 
 export const unitDefinitionSchema = z.object({
   id: nonEmptyText,
-  number: z.number().int().positive(),
+  number: z.number().int().nonnegative(),
   titleRu: nonEmptyText.optional(),
   conceptIds: z.array(nonEmptyText),
 });
@@ -27,7 +27,7 @@ export const conceptDefinitionSchema = z.object({
 export const curriculumBundleSchema = z
   .object({
     schemaVersion: z.literal(1),
-    curriculumId: z.literal("duolingo-ru-en"),
+    curriculumId: nonEmptyText,
     curriculumVersion: nonEmptyText,
     sourceFingerprint: nonEmptyText,
     units: z.array(unitDefinitionSchema).min(1),

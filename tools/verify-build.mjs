@@ -12,6 +12,7 @@ const requiredFiles = [
   "dist/icons/apple-touch-icon.png",
   "dist/legacy/math-trainer.html",
   "dist/curriculum-review.json",
+  "dist/academy-stars-1.json",
 ];
 
 await Promise.all(requiredFiles.map((path) => access(path)));

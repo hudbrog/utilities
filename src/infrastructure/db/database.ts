@@ -14,6 +14,7 @@ import type {
   StudySession,
   CurriculumReviewDecision,
   CurriculumReviewUnit,
+  ImportedCurriculum,
 } from "./model";
 
 export class EnglishSrsDatabase extends Dexie {
@@ -30,6 +31,7 @@ export class EnglishSrsDatabase extends Dexie {
   sessionQuestions!: EntityTable<PersistedSessionQuestion, "id">;
   curriculumReviewDecisions!: EntityTable<CurriculumReviewDecision, "conceptId">;
   curriculumReviewUnits!: EntityTable<CurriculumReviewUnit, "unitId">;
+  importedCurricula!: EntityTable<ImportedCurriculum, "id">;
 
   constructor(name = "english-srs-v1") {
     super(name);
@@ -94,6 +96,7 @@ export class EnglishSrsDatabase extends Dexie {
         }
       });
     });
+    this.version(4).stores({ importedCurricula: "id, importedAt" });
   }
 }
 

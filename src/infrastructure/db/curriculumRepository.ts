@@ -36,11 +36,13 @@ export async function installCurriculum(
 }
 
 export async function setIntroducingUnit(db: EnglishSrsDatabase, unitId: string): Promise<void> {
-  await db.transaction("rw", db.units, async () => {
+  await db.transaction("rw", db.units, db.conceptProgress, async () => {
     const target = await db.units.get(unitId);
     if (!target) throw new Error(`Unknown unit: ${unitId}`);
+    if (target.available === false || !target.conceptIds.length) throw new Error("В блоке нет доступных слов");
     if (target.state === "fully_introduced") return;
-    await db.units.put({ ...target, state: "introducing" });
+    const progress = await db.conceptProgress.bulkGet(target.conceptIds);
+    await db.units.put({ ...target, state: progress.every((item) => item?.introducedAt != null) ? "fully_introduced" : "introducing" });
   });
 }
 

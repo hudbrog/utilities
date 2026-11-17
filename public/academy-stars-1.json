@@ -1,0 +1,3311 @@
+{
+  "schemaVersion": 1,
+  "curriculumId": "academy-stars-1-workbook-2017",
+  "curriculumVersion": "2026-11-17.1",
+  "sourceFingerprint": "sha256:e64a64995e0dc86af0a2d0f1e98808f3a2bd9501210b9d8dc6991874f496c937",
+  "units": [
+    {
+      "id": "as1-core-00",
+      "number": 0,
+      "titleRu": "Welcome — алфавит, цвета, числа",
+      "conceptIds": [
+        "as1-core-00-apple",
+        "as1-core-00-ball",
+        "as1-core-00-cat",
+        "as1-core-00-doll",
+        "as1-core-00-elephant",
+        "as1-core-00-frog",
+        "as1-core-00-goat",
+        "as1-core-00-hat",
+        "as1-core-00-insect",
+        "as1-core-00-jug",
+        "as1-core-00-key",
+        "as1-core-00-lion",
+        "as1-core-00-monkey",
+        "as1-core-00-nut",
+        "as1-core-00-orange",
+        "as1-core-00-panda",
+        "as1-core-00-queen",
+        "as1-core-00-robot",
+        "as1-core-00-sun",
+        "as1-core-00-tiger",
+        "as1-core-00-umbrella",
+        "as1-core-00-van",
+        "as1-core-00-worm",
+        "as1-core-00-fox",
+        "as1-core-00-yoghurt",
+        "as1-core-00-zoo",
+        "as1-core-00-black",
+        "as1-core-00-blue",
+        "as1-core-00-green",
+        "as1-core-00-purple",
+        "as1-core-00-red",
+        "as1-core-00-white",
+        "as1-core-00-yellow",
+        "as1-core-00-one",
+        "as1-core-00-two",
+        "as1-core-00-three",
+        "as1-core-00-four",
+        "as1-core-00-five",
+        "as1-core-00-six",
+        "as1-core-00-seven",
+        "as1-core-00-eight",
+        "as1-core-00-nine",
+        "as1-core-00-ten"
+      ]
+    },
+    {
+      "id": "as1-core-01",
+      "number": 1,
+      "titleRu": "1. My funny friends — друзья",
+      "conceptIds": [
+        "as1-core-01-big",
+        "as1-core-01-boy",
+        "as1-core-01-friend",
+        "as1-core-01-funny",
+        "as1-core-01-girl",
+        "as1-core-01-small",
+        "as1-core-01-tall",
+        "as1-core-01-teacher"
+      ]
+    },
+    {
+      "id": "as1-core-02",
+      "number": 2,
+      "titleRu": "2. New for school — школьные вещи",
+      "conceptIds": [
+        "as1-core-02-bag",
+        "as1-core-02-book",
+        "as1-core-02-glue",
+        "as1-core-02-pen",
+        "as1-core-02-pencil",
+        "as1-core-02-pencil-case",
+        "as1-core-02-rubber",
+        "as1-core-02-ruler"
+      ]
+    },
+    {
+      "id": "as1-core-03",
+      "number": 3,
+      "titleRu": "3. This is my family — семья",
+      "conceptIds": [
+        "as1-core-03-baby",
+        "as1-core-03-brother",
+        "as1-core-03-dad",
+        "as1-core-03-family",
+        "as1-core-03-grandma",
+        "as1-core-03-grandpa",
+        "as1-core-03-mum",
+        "as1-core-03-sister"
+      ]
+    },
+    {
+      "id": "as1-core-04",
+      "number": 4,
+      "titleRu": "4. Fantastic feelings — чувства",
+      "conceptIds": [
+        "as1-core-04-angry",
+        "as1-core-04-cold",
+        "as1-core-04-happy",
+        "as1-core-04-hot",
+        "as1-core-04-hungry",
+        "as1-core-04-sad",
+        "as1-core-04-thirsty",
+        "as1-core-04-tired"
+      ]
+    },
+    {
+      "id": "as1-core-05",
+      "number": 5,
+      "titleRu": "5. I can do it! — действия",
+      "conceptIds": [
+        "as1-core-05-catch",
+        "as1-core-05-climb",
+        "as1-core-05-jump",
+        "as1-core-05-kick",
+        "as1-core-05-ride-a-bike",
+        "as1-core-05-sing",
+        "as1-core-05-swim",
+        "as1-core-05-throw"
+      ]
+    },
+    {
+      "id": "as1-core-06",
+      "number": 6,
+      "titleRu": "6. Let’s play today! — игры и площадка",
+      "conceptIds": [
+        "as1-core-06-bike",
+        "as1-core-06-boat",
+        "as1-core-06-car",
+        "as1-core-06-kite",
+        "as1-core-06-sandpit",
+        "as1-core-06-seesaw",
+        "as1-core-06-slide",
+        "as1-core-06-swing"
+      ]
+    },
+    {
+      "id": "as1-core-07",
+      "number": 7,
+      "titleRu": "7. Long legs, short legs — тело",
+      "conceptIds": [
+        "as1-core-07-arm",
+        "as1-core-07-ear",
+        "as1-core-07-eye",
+        "as1-core-07-foot",
+        "as1-core-07-leg",
+        "as1-core-07-long",
+        "as1-core-07-short",
+        "as1-core-07-tail"
+      ]
+    },
+    {
+      "id": "as1-core-08",
+      "number": 8,
+      "titleRu": "8. Old and new clothes — одежда",
+      "conceptIds": [
+        "as1-core-08-dress",
+        "as1-core-08-jacket",
+        "as1-core-08-shirt",
+        "as1-core-08-shoes",
+        "as1-core-08-skirt",
+        "as1-core-08-socks",
+        "as1-core-08-trousers",
+        "as1-core-08-t-shirt"
+      ]
+    },
+    {
+      "id": "as1-core-09",
+      "number": 9,
+      "titleRu": "9. Brilliant bedrooms — спальня",
+      "conceptIds": [
+        "as1-core-09-bed",
+        "as1-core-09-chair",
+        "as1-core-09-clock",
+        "as1-core-09-desk",
+        "as1-core-09-door",
+        "as1-core-09-lamp",
+        "as1-core-09-wardrobe",
+        "as1-core-09-window"
+      ]
+    },
+    {
+      "id": "as1-core-10",
+      "number": 10,
+      "titleRu": "10. Fabulous food — еда",
+      "conceptIds": [
+        "as1-core-10-banana",
+        "as1-core-10-burger",
+        "as1-core-10-cake",
+        "as1-core-10-carrot",
+        "as1-core-10-mango",
+        "as1-core-10-onion",
+        "as1-core-10-pear",
+        "as1-core-10-tomato"
+      ]
+    },
+    {
+      "id": "as1-extra-00",
+      "number": 100,
+      "titleRu": "Дополнительные слова — Welcome — алфавит, цвета, числа",
+      "conceptIds": [
+        "as1-extra-00-hello",
+        "as1-extra-00-hi",
+        "as1-extra-00-school",
+        "as1-extra-00-alphabet",
+        "as1-extra-00-colour",
+        "as1-extra-00-number"
+      ]
+    },
+    {
+      "id": "as1-extra-01",
+      "number": 101,
+      "titleRu": "Дополнительные слова — 1. My funny friends — друзья",
+      "conceptIds": [
+        "as1-extra-01-name",
+        "as1-extra-01-from",
+        "as1-extra-01-russia",
+        "as1-extra-01-egypt",
+        "as1-extra-01-great-britain",
+        "as1-extra-01-mexico",
+        "as1-extra-01-fat",
+        "as1-extra-01-mat",
+        "as1-extra-01-fine",
+        "as1-extra-01-goodbye",
+        "as1-extra-01-thank-you",
+        "as1-extra-01-how-old"
+      ]
+    },
+    {
+      "id": "as1-extra-02",
+      "number": 102,
+      "titleRu": "Дополнительные слова — 2. New for school — школьные вещи",
+      "conceptIds": [
+        "as1-extra-02-old",
+        "as1-extra-02-new",
+        "as1-extra-02-paint",
+        "as1-extra-02-paintbrush",
+        "as1-extra-02-picture",
+        "as1-extra-02-present",
+        "as1-extra-02-yes",
+        "as1-extra-02-no",
+        "as1-extra-02-please"
+      ]
+    },
+    {
+      "id": "as1-extra-03",
+      "number": 103,
+      "titleRu": "Дополнительные слова — 3. This is my family — семья",
+      "conceptIds": [
+        "as1-extra-03-mother",
+        "as1-extra-03-father",
+        "as1-extra-03-wedding",
+        "as1-extra-03-flower",
+        "as1-extra-03-beautiful",
+        "as1-extra-03-toy",
+        "as1-extra-03-country",
+        "as1-extra-03-his",
+        "as1-extra-03-her",
+        "as1-extra-03-my",
+        "as1-extra-03-your",
+        "as1-extra-03-this",
+        "as1-extra-03-that",
+        "as1-extra-03-wig",
+        "as1-extra-03-wind",
+        "as1-extra-03-fig"
+      ]
+    },
+    {
+      "id": "as1-extra-04",
+      "number": 104,
+      "titleRu": "Дополнительные слова — 4. Fantastic feelings — чувства",
+      "conceptIds": [
+        "as1-extra-04-scared",
+        "as1-extra-04-ready",
+        "as1-extra-04-kitten",
+        "as1-extra-04-grey",
+        "as1-extra-04-brown",
+        "as1-extra-04-spider",
+        "as1-extra-04-dog",
+        "as1-extra-04-log",
+        "as1-extra-04-bog",
+        "as1-extra-04-wrong",
+        "as1-extra-04-worry",
+        "as1-extra-04-today"
+      ]
+    },
+    {
+      "id": "as1-extra-05",
+      "number": 105,
+      "titleRu": "Дополнительные слова — 5. I can do it! — действия",
+      "conceptIds": [
+        "as1-extra-05-run",
+        "as1-extra-05-see",
+        "as1-extra-05-hear",
+        "as1-extra-05-walk",
+        "as1-extra-05-ride-a-horse",
+        "as1-extra-05-horse",
+        "as1-extra-05-clap",
+        "as1-extra-05-stamp",
+        "as1-extra-05-forest",
+        "as1-extra-05-china",
+        "as1-extra-05-fish",
+        "as1-extra-05-fun",
+        "as1-extra-05-can",
+        "as1-extra-05-can-t"
+      ]
+    },
+    {
+      "id": "as1-extra-06",
+      "number": 106,
+      "titleRu": "Дополнительные слова — 6. Let’s play today! — игры и площадка",
+      "conceptIds": [
+        "as1-extra-06-playground",
+        "as1-extra-06-circus",
+        "as1-extra-06-juggle",
+        "as1-extra-06-trapeze",
+        "as1-extra-06-balloon",
+        "as1-extra-06-paper",
+        "as1-extra-06-water",
+        "as1-extra-06-box",
+        "as1-extra-06-crayon",
+        "as1-extra-06-under",
+        "as1-extra-06-on",
+        "as1-extra-06-in",
+        "as1-extra-06-next-to",
+        "as1-extra-06-where"
+      ]
+    },
+    {
+      "id": "as1-extra-07",
+      "number": 107,
+      "titleRu": "Дополнительные слова — 7. Long legs, short legs — тело",
+      "conceptIds": [
+        "as1-extra-07-head",
+        "as1-extra-07-nose",
+        "as1-extra-07-hair",
+        "as1-extra-07-hand",
+        "as1-extra-07-feet",
+        "as1-extra-07-finger",
+        "as1-extra-07-blonde",
+        "as1-extra-07-tortoise",
+        "as1-extra-07-bush-baby",
+        "as1-extra-07-tree",
+        "as1-extra-07-chocolate",
+        "as1-extra-07-cherry",
+        "as1-extra-07-chew"
+      ]
+    },
+    {
+      "id": "as1-extra-08",
+      "number": 108,
+      "titleRu": "Дополнительные слова — 8. Old and new clothes — одежда",
+      "conceptIds": [
+        "as1-extra-08-glove",
+        "as1-extra-08-wet",
+        "as1-extra-08-weather",
+        "as1-extra-08-string",
+        "as1-extra-08-puppet",
+        "as1-extra-08-crocodile",
+        "as1-extra-08-mouth",
+        "as1-extra-08-pirate",
+        "as1-extra-08-wear",
+        "as1-extra-08-wearing"
+      ]
+    },
+    {
+      "id": "as1-extra-09",
+      "number": 109,
+      "titleRu": "Дополнительные слова — 9. Brilliant bedrooms — спальня",
+      "conceptIds": [
+        "as1-extra-09-eleven",
+        "as1-extra-09-twelve",
+        "as1-extra-09-thirteen",
+        "as1-extra-09-fourteen",
+        "as1-extra-09-fifteen",
+        "as1-extra-09-sixteen",
+        "as1-extra-09-seventeen",
+        "as1-extra-09-eighteen",
+        "as1-extra-09-nineteen",
+        "as1-extra-09-twenty",
+        "as1-extra-09-bedroom",
+        "as1-extra-09-monster",
+        "as1-extra-09-sleep",
+        "as1-extra-09-cupboard",
+        "as1-extra-09-toy-cupboard",
+        "as1-extra-09-photo",
+        "as1-extra-09-boring",
+        "as1-extra-09-nice",
+        "as1-extra-09-fantastic"
+      ]
+    },
+    {
+      "id": "as1-extra-10",
+      "number": 110,
+      "titleRu": "Дополнительные слова — 10. Fabulous food — еда",
+      "conceptIds": [
+        "as1-extra-10-coconut",
+        "as1-extra-10-melon",
+        "as1-extra-10-ice-cream",
+        "as1-extra-10-smell",
+        "as1-extra-10-taste",
+        "as1-extra-10-durian",
+        "as1-extra-10-jackfruit",
+        "as1-extra-10-rambutan",
+        "as1-extra-10-fruit",
+        "as1-extra-10-healthy",
+        "as1-extra-10-yummy",
+        "as1-extra-10-amazing",
+        "as1-extra-10-bus",
+        "as1-extra-10-eat",
+        "as1-extra-10-like"
+      ]
+    }
+  ],
+  "concepts": [
+    {
+      "id": "as1-core-00-apple",
+      "unitId": "as1-core-00",
+      "order": 1,
+      "en": "apple",
+      "ru": "яблоко",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-ball",
+      "unitId": "as1-core-00",
+      "order": 2,
+      "en": "ball",
+      "ru": "мяч",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-cat",
+      "unitId": "as1-core-00",
+      "order": 3,
+      "en": "cat",
+      "ru": "кошка",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "кот"
+      ],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-doll",
+      "unitId": "as1-core-00",
+      "order": 4,
+      "en": "doll",
+      "ru": "кукла",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-elephant",
+      "unitId": "as1-core-00",
+      "order": 5,
+      "en": "elephant",
+      "ru": "слон",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-frog",
+      "unitId": "as1-core-00",
+      "order": 6,
+      "en": "frog",
+      "ru": "лягушка",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-goat",
+      "unitId": "as1-core-00",
+      "order": 7,
+      "en": "goat",
+      "ru": "коза",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-hat",
+      "unitId": "as1-core-00",
+      "order": 8,
+      "en": "hat",
+      "ru": "шляпа",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "головной убор"
+      ],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-insect",
+      "unitId": "as1-core-00",
+      "order": 9,
+      "en": "insect",
+      "ru": "насекомое",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-jug",
+      "unitId": "as1-core-00",
+      "order": 10,
+      "en": "jug",
+      "ru": "кувшин",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-key",
+      "unitId": "as1-core-00",
+      "order": 11,
+      "en": "key",
+      "ru": "ключ",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-lion",
+      "unitId": "as1-core-00",
+      "order": 12,
+      "en": "lion",
+      "ru": "лев",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-monkey",
+      "unitId": "as1-core-00",
+      "order": 13,
+      "en": "monkey",
+      "ru": "обезьяна",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-nut",
+      "unitId": "as1-core-00",
+      "order": 14,
+      "en": "nut",
+      "ru": "орех",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-orange",
+      "unitId": "as1-core-00",
+      "order": 15,
+      "en": "orange",
+      "ru": "апельсин / оранжевый",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "апельсин",
+        "оранжевый",
+        "оранжевая",
+        "оранжевое"
+      ],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-panda",
+      "unitId": "as1-core-00",
+      "order": 16,
+      "en": "panda",
+      "ru": "панда",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-queen",
+      "unitId": "as1-core-00",
+      "order": 17,
+      "en": "queen",
+      "ru": "королева",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-robot",
+      "unitId": "as1-core-00",
+      "order": 18,
+      "en": "robot",
+      "ru": "робот",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-sun",
+      "unitId": "as1-core-00",
+      "order": 19,
+      "en": "sun",
+      "ru": "солнце",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-tiger",
+      "unitId": "as1-core-00",
+      "order": 20,
+      "en": "tiger",
+      "ru": "тигр",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-umbrella",
+      "unitId": "as1-core-00",
+      "order": 21,
+      "en": "umbrella",
+      "ru": "зонт",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "зонтик"
+      ],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-van",
+      "unitId": "as1-core-00",
+      "order": 22,
+      "en": "van",
+      "ru": "фургон",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-worm",
+      "unitId": "as1-core-00",
+      "order": 23,
+      "en": "worm",
+      "ru": "червяк",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "червь"
+      ],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-fox",
+      "unitId": "as1-core-00",
+      "order": 24,
+      "en": "fox",
+      "ru": "лиса",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-yoghurt",
+      "unitId": "as1-core-00",
+      "order": 25,
+      "en": "yoghurt",
+      "ru": "йогурт",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-zoo",
+      "unitId": "as1-core-00",
+      "order": 26,
+      "en": "zoo",
+      "ru": "зоопарк",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-black",
+      "unitId": "as1-core-00",
+      "order": 27,
+      "en": "black",
+      "ru": "чёрный",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "черный"
+      ],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-blue",
+      "unitId": "as1-core-00",
+      "order": 28,
+      "en": "blue",
+      "ru": "синий",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "голубой"
+      ],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-green",
+      "unitId": "as1-core-00",
+      "order": 29,
+      "en": "green",
+      "ru": "зелёный",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "зеленый"
+      ],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-purple",
+      "unitId": "as1-core-00",
+      "order": 30,
+      "en": "purple",
+      "ru": "фиолетовый",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-red",
+      "unitId": "as1-core-00",
+      "order": 31,
+      "en": "red",
+      "ru": "красный",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-white",
+      "unitId": "as1-core-00",
+      "order": 32,
+      "en": "white",
+      "ru": "белый",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-yellow",
+      "unitId": "as1-core-00",
+      "order": 33,
+      "en": "yellow",
+      "ru": "жёлтый",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "желтый"
+      ],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-one",
+      "unitId": "as1-core-00",
+      "order": 34,
+      "en": "one",
+      "ru": "один",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "number",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-two",
+      "unitId": "as1-core-00",
+      "order": 35,
+      "en": "two",
+      "ru": "два",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "number",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-three",
+      "unitId": "as1-core-00",
+      "order": 36,
+      "en": "three",
+      "ru": "три",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "number",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-four",
+      "unitId": "as1-core-00",
+      "order": 37,
+      "en": "four",
+      "ru": "четыре",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "number",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-five",
+      "unitId": "as1-core-00",
+      "order": 38,
+      "en": "five",
+      "ru": "пять",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "number",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-six",
+      "unitId": "as1-core-00",
+      "order": 39,
+      "en": "six",
+      "ru": "шесть",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "number",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-seven",
+      "unitId": "as1-core-00",
+      "order": 40,
+      "en": "seven",
+      "ru": "семь",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "number",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-eight",
+      "unitId": "as1-core-00",
+      "order": 41,
+      "en": "eight",
+      "ru": "восемь",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "number",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-nine",
+      "unitId": "as1-core-00",
+      "order": 42,
+      "en": "nine",
+      "ru": "девять",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "number",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-00-ten",
+      "unitId": "as1-core-00",
+      "order": 43,
+      "en": "ten",
+      "ru": "десять",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "number",
+      "semanticCategory": "welcome"
+    },
+    {
+      "id": "as1-core-01-big",
+      "unitId": "as1-core-01",
+      "order": 1,
+      "en": "big",
+      "ru": "большой",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "крупный"
+      ],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "my-funny-friends"
+    },
+    {
+      "id": "as1-core-01-boy",
+      "unitId": "as1-core-01",
+      "order": 2,
+      "en": "boy",
+      "ru": "мальчик",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "my-funny-friends"
+    },
+    {
+      "id": "as1-core-01-friend",
+      "unitId": "as1-core-01",
+      "order": 3,
+      "en": "friend",
+      "ru": "друг",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "подруга"
+      ],
+      "semanticCategory": "my-funny-friends"
+    },
+    {
+      "id": "as1-core-01-funny",
+      "unitId": "as1-core-01",
+      "order": 4,
+      "en": "funny",
+      "ru": "смешной",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "забавный"
+      ],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "my-funny-friends"
+    },
+    {
+      "id": "as1-core-01-girl",
+      "unitId": "as1-core-01",
+      "order": 5,
+      "en": "girl",
+      "ru": "девочка",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "my-funny-friends"
+    },
+    {
+      "id": "as1-core-01-small",
+      "unitId": "as1-core-01",
+      "order": 6,
+      "en": "small",
+      "ru": "маленький",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "небольшой"
+      ],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "my-funny-friends"
+    },
+    {
+      "id": "as1-core-01-tall",
+      "unitId": "as1-core-01",
+      "order": 7,
+      "en": "tall",
+      "ru": "высокий",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "my-funny-friends"
+    },
+    {
+      "id": "as1-core-01-teacher",
+      "unitId": "as1-core-01",
+      "order": 8,
+      "en": "teacher",
+      "ru": "учитель",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "учительница"
+      ],
+      "semanticCategory": "my-funny-friends"
+    },
+    {
+      "id": "as1-core-02-bag",
+      "unitId": "as1-core-02",
+      "order": 1,
+      "en": "bag",
+      "ru": "сумка",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "рюкзак"
+      ],
+      "semanticCategory": "new-for-school"
+    },
+    {
+      "id": "as1-core-02-book",
+      "unitId": "as1-core-02",
+      "order": 2,
+      "en": "book",
+      "ru": "книга",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "new-for-school"
+    },
+    {
+      "id": "as1-core-02-glue",
+      "unitId": "as1-core-02",
+      "order": 3,
+      "en": "glue",
+      "ru": "клей",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "new-for-school"
+    },
+    {
+      "id": "as1-core-02-pen",
+      "unitId": "as1-core-02",
+      "order": 4,
+      "en": "pen",
+      "ru": "ручка",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "new-for-school"
+    },
+    {
+      "id": "as1-core-02-pencil",
+      "unitId": "as1-core-02",
+      "order": 5,
+      "en": "pencil",
+      "ru": "карандаш",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "new-for-school"
+    },
+    {
+      "id": "as1-core-02-pencil-case",
+      "unitId": "as1-core-02",
+      "order": 6,
+      "en": "pencil case",
+      "ru": "пенал",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "new-for-school"
+    },
+    {
+      "id": "as1-core-02-rubber",
+      "unitId": "as1-core-02",
+      "order": 7,
+      "en": "rubber",
+      "ru": "ластик",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "стёрка"
+      ],
+      "semanticCategory": "new-for-school"
+    },
+    {
+      "id": "as1-core-02-ruler",
+      "unitId": "as1-core-02",
+      "order": 8,
+      "en": "ruler",
+      "ru": "линейка",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "new-for-school"
+    },
+    {
+      "id": "as1-core-03-baby",
+      "unitId": "as1-core-03",
+      "order": 1,
+      "en": "baby",
+      "ru": "малыш",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "младенец"
+      ],
+      "semanticCategory": "this-is-my-family"
+    },
+    {
+      "id": "as1-core-03-brother",
+      "unitId": "as1-core-03",
+      "order": 2,
+      "en": "brother",
+      "ru": "брат",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "this-is-my-family"
+    },
+    {
+      "id": "as1-core-03-dad",
+      "unitId": "as1-core-03",
+      "order": 3,
+      "en": "dad",
+      "ru": "папа",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "отец"
+      ],
+      "semanticCategory": "this-is-my-family"
+    },
+    {
+      "id": "as1-core-03-family",
+      "unitId": "as1-core-03",
+      "order": 4,
+      "en": "family",
+      "ru": "семья",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "this-is-my-family"
+    },
+    {
+      "id": "as1-core-03-grandma",
+      "unitId": "as1-core-03",
+      "order": 5,
+      "en": "grandma",
+      "ru": "бабушка",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "this-is-my-family"
+    },
+    {
+      "id": "as1-core-03-grandpa",
+      "unitId": "as1-core-03",
+      "order": 6,
+      "en": "grandpa",
+      "ru": "дедушка",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "this-is-my-family"
+    },
+    {
+      "id": "as1-core-03-mum",
+      "unitId": "as1-core-03",
+      "order": 7,
+      "en": "mum",
+      "ru": "мама",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "мать"
+      ],
+      "semanticCategory": "this-is-my-family"
+    },
+    {
+      "id": "as1-core-03-sister",
+      "unitId": "as1-core-03",
+      "order": 8,
+      "en": "sister",
+      "ru": "сестра",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "this-is-my-family"
+    },
+    {
+      "id": "as1-core-04-angry",
+      "unitId": "as1-core-04",
+      "order": 1,
+      "en": "angry",
+      "ru": "сердитый",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "злой"
+      ],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "fantastic-feelings"
+    },
+    {
+      "id": "as1-core-04-cold",
+      "unitId": "as1-core-04",
+      "order": 2,
+      "en": "cold",
+      "ru": "холодно",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "холодный"
+      ],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "fantastic-feelings"
+    },
+    {
+      "id": "as1-core-04-happy",
+      "unitId": "as1-core-04",
+      "order": 3,
+      "en": "happy",
+      "ru": "счастливый",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "радостный"
+      ],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "fantastic-feelings"
+    },
+    {
+      "id": "as1-core-04-hot",
+      "unitId": "as1-core-04",
+      "order": 4,
+      "en": "hot",
+      "ru": "жарко",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "горячий"
+      ],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "fantastic-feelings"
+    },
+    {
+      "id": "as1-core-04-hungry",
+      "unitId": "as1-core-04",
+      "order": 5,
+      "en": "hungry",
+      "ru": "голодный",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "хочу есть"
+      ],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "fantastic-feelings"
+    },
+    {
+      "id": "as1-core-04-sad",
+      "unitId": "as1-core-04",
+      "order": 6,
+      "en": "sad",
+      "ru": "грустный",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "печальный"
+      ],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "fantastic-feelings"
+    },
+    {
+      "id": "as1-core-04-thirsty",
+      "unitId": "as1-core-04",
+      "order": 7,
+      "en": "thirsty",
+      "ru": "хочу пить",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "испытываю жажду"
+      ],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "fantastic-feelings"
+    },
+    {
+      "id": "as1-core-04-tired",
+      "unitId": "as1-core-04",
+      "order": 8,
+      "en": "tired",
+      "ru": "уставший",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "усталый"
+      ],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "fantastic-feelings"
+    },
+    {
+      "id": "as1-core-05-catch",
+      "unitId": "as1-core-05",
+      "order": 1,
+      "en": "catch",
+      "ru": "ловить",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "поймать"
+      ],
+      "partOfSpeech": "verb",
+      "semanticCategory": "i-can-do-it"
+    },
+    {
+      "id": "as1-core-05-climb",
+      "unitId": "as1-core-05",
+      "order": 2,
+      "en": "climb",
+      "ru": "лазать",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "карабкаться"
+      ],
+      "partOfSpeech": "verb",
+      "semanticCategory": "i-can-do-it"
+    },
+    {
+      "id": "as1-core-05-jump",
+      "unitId": "as1-core-05",
+      "order": 3,
+      "en": "jump",
+      "ru": "прыгать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "verb",
+      "semanticCategory": "i-can-do-it"
+    },
+    {
+      "id": "as1-core-05-kick",
+      "unitId": "as1-core-05",
+      "order": 4,
+      "en": "kick",
+      "ru": "пинать",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "ударить ногой"
+      ],
+      "partOfSpeech": "verb",
+      "semanticCategory": "i-can-do-it"
+    },
+    {
+      "id": "as1-core-05-ride-a-bike",
+      "unitId": "as1-core-05",
+      "order": 5,
+      "en": "ride a bike",
+      "ru": "кататься на велосипеде",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "ехать на велосипеде"
+      ],
+      "partOfSpeech": "verb",
+      "semanticCategory": "i-can-do-it"
+    },
+    {
+      "id": "as1-core-05-sing",
+      "unitId": "as1-core-05",
+      "order": 6,
+      "en": "sing",
+      "ru": "петь",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "verb",
+      "semanticCategory": "i-can-do-it"
+    },
+    {
+      "id": "as1-core-05-swim",
+      "unitId": "as1-core-05",
+      "order": 7,
+      "en": "swim",
+      "ru": "плавать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "verb",
+      "semanticCategory": "i-can-do-it"
+    },
+    {
+      "id": "as1-core-05-throw",
+      "unitId": "as1-core-05",
+      "order": 8,
+      "en": "throw",
+      "ru": "бросать",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "кидать"
+      ],
+      "partOfSpeech": "verb",
+      "semanticCategory": "i-can-do-it"
+    },
+    {
+      "id": "as1-core-06-bike",
+      "unitId": "as1-core-06",
+      "order": 1,
+      "en": "bike",
+      "ru": "велосипед",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "lets-play-today"
+    },
+    {
+      "id": "as1-core-06-boat",
+      "unitId": "as1-core-06",
+      "order": 2,
+      "en": "boat",
+      "ru": "лодка",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "катер"
+      ],
+      "semanticCategory": "lets-play-today"
+    },
+    {
+      "id": "as1-core-06-car",
+      "unitId": "as1-core-06",
+      "order": 3,
+      "en": "car",
+      "ru": "машина",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "автомобиль"
+      ],
+      "semanticCategory": "lets-play-today"
+    },
+    {
+      "id": "as1-core-06-kite",
+      "unitId": "as1-core-06",
+      "order": 4,
+      "en": "kite",
+      "ru": "воздушный змей",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "lets-play-today"
+    },
+    {
+      "id": "as1-core-06-sandpit",
+      "unitId": "as1-core-06",
+      "order": 5,
+      "en": "sandpit",
+      "ru": "песочница",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "lets-play-today"
+    },
+    {
+      "id": "as1-core-06-seesaw",
+      "unitId": "as1-core-06",
+      "order": 6,
+      "en": "seesaw",
+      "ru": "качели-балансир",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "качалка-балансир"
+      ],
+      "semanticCategory": "lets-play-today"
+    },
+    {
+      "id": "as1-core-06-slide",
+      "unitId": "as1-core-06",
+      "order": 7,
+      "en": "slide",
+      "ru": "горка",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "lets-play-today"
+    },
+    {
+      "id": "as1-core-06-swing",
+      "unitId": "as1-core-06",
+      "order": 8,
+      "en": "swing",
+      "ru": "качели",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "lets-play-today"
+    },
+    {
+      "id": "as1-core-07-arm",
+      "unitId": "as1-core-07",
+      "order": 1,
+      "en": "arm",
+      "ru": "рука",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "предплечье"
+      ],
+      "semanticCategory": "long-legs-short-legs"
+    },
+    {
+      "id": "as1-core-07-ear",
+      "unitId": "as1-core-07",
+      "order": 2,
+      "en": "ear",
+      "ru": "ухо",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "long-legs-short-legs"
+    },
+    {
+      "id": "as1-core-07-eye",
+      "unitId": "as1-core-07",
+      "order": 3,
+      "en": "eye",
+      "ru": "глаз",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "long-legs-short-legs"
+    },
+    {
+      "id": "as1-core-07-foot",
+      "unitId": "as1-core-07",
+      "order": 4,
+      "en": "foot",
+      "ru": "ступня",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "стопа"
+      ],
+      "semanticCategory": "long-legs-short-legs"
+    },
+    {
+      "id": "as1-core-07-leg",
+      "unitId": "as1-core-07",
+      "order": 5,
+      "en": "leg",
+      "ru": "нога",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "long-legs-short-legs"
+    },
+    {
+      "id": "as1-core-07-long",
+      "unitId": "as1-core-07",
+      "order": 6,
+      "en": "long",
+      "ru": "длинный",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "long-legs-short-legs"
+    },
+    {
+      "id": "as1-core-07-short",
+      "unitId": "as1-core-07",
+      "order": 7,
+      "en": "short",
+      "ru": "короткий",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "partOfSpeech": "adjective",
+      "semanticCategory": "long-legs-short-legs"
+    },
+    {
+      "id": "as1-core-07-tail",
+      "unitId": "as1-core-07",
+      "order": 8,
+      "en": "tail",
+      "ru": "хвост",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "long-legs-short-legs"
+    },
+    {
+      "id": "as1-core-08-dress",
+      "unitId": "as1-core-08",
+      "order": 1,
+      "en": "dress",
+      "ru": "платье",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "old-and-new-clothes"
+    },
+    {
+      "id": "as1-core-08-jacket",
+      "unitId": "as1-core-08",
+      "order": 2,
+      "en": "jacket",
+      "ru": "куртка",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "пиджак"
+      ],
+      "semanticCategory": "old-and-new-clothes"
+    },
+    {
+      "id": "as1-core-08-shirt",
+      "unitId": "as1-core-08",
+      "order": 3,
+      "en": "shirt",
+      "ru": "рубашка",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "old-and-new-clothes"
+    },
+    {
+      "id": "as1-core-08-shoes",
+      "unitId": "as1-core-08",
+      "order": 4,
+      "en": "shoes",
+      "ru": "обувь",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "туфли",
+        "ботинки"
+      ],
+      "semanticCategory": "old-and-new-clothes"
+    },
+    {
+      "id": "as1-core-08-skirt",
+      "unitId": "as1-core-08",
+      "order": 5,
+      "en": "skirt",
+      "ru": "юбка",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "old-and-new-clothes"
+    },
+    {
+      "id": "as1-core-08-socks",
+      "unitId": "as1-core-08",
+      "order": 6,
+      "en": "socks",
+      "ru": "носки",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "old-and-new-clothes"
+    },
+    {
+      "id": "as1-core-08-trousers",
+      "unitId": "as1-core-08",
+      "order": 7,
+      "en": "trousers",
+      "ru": "брюки",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "штаны"
+      ],
+      "semanticCategory": "old-and-new-clothes"
+    },
+    {
+      "id": "as1-core-08-t-shirt",
+      "unitId": "as1-core-08",
+      "order": 8,
+      "en": "T-shirt",
+      "ru": "футболка",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "old-and-new-clothes"
+    },
+    {
+      "id": "as1-core-09-bed",
+      "unitId": "as1-core-09",
+      "order": 1,
+      "en": "bed",
+      "ru": "кровать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "brilliant-bedrooms"
+    },
+    {
+      "id": "as1-core-09-chair",
+      "unitId": "as1-core-09",
+      "order": 2,
+      "en": "chair",
+      "ru": "стул",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "brilliant-bedrooms"
+    },
+    {
+      "id": "as1-core-09-clock",
+      "unitId": "as1-core-09",
+      "order": 3,
+      "en": "clock",
+      "ru": "часы",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "brilliant-bedrooms"
+    },
+    {
+      "id": "as1-core-09-desk",
+      "unitId": "as1-core-09",
+      "order": 4,
+      "en": "desk",
+      "ru": "письменный стол",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "парта"
+      ],
+      "semanticCategory": "brilliant-bedrooms"
+    },
+    {
+      "id": "as1-core-09-door",
+      "unitId": "as1-core-09",
+      "order": 5,
+      "en": "door",
+      "ru": "дверь",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "brilliant-bedrooms"
+    },
+    {
+      "id": "as1-core-09-lamp",
+      "unitId": "as1-core-09",
+      "order": 6,
+      "en": "lamp",
+      "ru": "лампа",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "светильник"
+      ],
+      "semanticCategory": "brilliant-bedrooms"
+    },
+    {
+      "id": "as1-core-09-wardrobe",
+      "unitId": "as1-core-09",
+      "order": 7,
+      "en": "wardrobe",
+      "ru": "шкаф для одежды",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "шкаф"
+      ],
+      "semanticCategory": "brilliant-bedrooms"
+    },
+    {
+      "id": "as1-core-09-window",
+      "unitId": "as1-core-09",
+      "order": 8,
+      "en": "window",
+      "ru": "окно",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "brilliant-bedrooms"
+    },
+    {
+      "id": "as1-core-10-banana",
+      "unitId": "as1-core-10",
+      "order": 1,
+      "en": "banana",
+      "ru": "банан",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "fabulous-food"
+    },
+    {
+      "id": "as1-core-10-burger",
+      "unitId": "as1-core-10",
+      "order": 2,
+      "en": "burger",
+      "ru": "бургер",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "гамбургер"
+      ],
+      "semanticCategory": "fabulous-food"
+    },
+    {
+      "id": "as1-core-10-cake",
+      "unitId": "as1-core-10",
+      "order": 3,
+      "en": "cake",
+      "ru": "торт",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "пирожное"
+      ],
+      "semanticCategory": "fabulous-food"
+    },
+    {
+      "id": "as1-core-10-carrot",
+      "unitId": "as1-core-10",
+      "order": 4,
+      "en": "carrot",
+      "ru": "морковь",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "морковка"
+      ],
+      "semanticCategory": "fabulous-food"
+    },
+    {
+      "id": "as1-core-10-mango",
+      "unitId": "as1-core-10",
+      "order": 5,
+      "en": "mango",
+      "ru": "манго",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "fabulous-food"
+    },
+    {
+      "id": "as1-core-10-onion",
+      "unitId": "as1-core-10",
+      "order": 6,
+      "en": "onion",
+      "ru": "лук",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "fabulous-food"
+    },
+    {
+      "id": "as1-core-10-pear",
+      "unitId": "as1-core-10",
+      "order": 7,
+      "en": "pear",
+      "ru": "груша",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "fabulous-food"
+    },
+    {
+      "id": "as1-core-10-tomato",
+      "unitId": "as1-core-10",
+      "order": 8,
+      "en": "tomato",
+      "ru": "помидор",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "томат"
+      ],
+      "semanticCategory": "fabulous-food"
+    },
+    {
+      "id": "as1-extra-00-hello",
+      "unitId": "as1-extra-00",
+      "order": 1,
+      "en": "hello",
+      "ru": "привет",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "здравствуй",
+        "здравствуйте"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-00-hi",
+      "unitId": "as1-extra-00",
+      "order": 2,
+      "en": "hi",
+      "ru": "привет",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-00-school",
+      "unitId": "as1-extra-00",
+      "order": 3,
+      "en": "school",
+      "ru": "школа",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-00-alphabet",
+      "unitId": "as1-extra-00",
+      "order": 4,
+      "en": "alphabet",
+      "ru": "алфавит",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-00-colour",
+      "unitId": "as1-extra-00",
+      "order": 5,
+      "en": "colour",
+      "ru": "цвет",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "окраска"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-00-number",
+      "unitId": "as1-extra-00",
+      "order": 6,
+      "en": "number",
+      "ru": "число",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "номер"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-01-name",
+      "unitId": "as1-extra-01",
+      "order": 1,
+      "en": "name",
+      "ru": "имя",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-01-from",
+      "unitId": "as1-extra-01",
+      "order": 2,
+      "en": "from",
+      "ru": "из",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "от"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-01-russia",
+      "unitId": "as1-extra-01",
+      "order": 3,
+      "en": "Russia",
+      "ru": "Россия",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-01-egypt",
+      "unitId": "as1-extra-01",
+      "order": 4,
+      "en": "Egypt",
+      "ru": "Египет",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-01-great-britain",
+      "unitId": "as1-extra-01",
+      "order": 5,
+      "en": "Great Britain",
+      "ru": "Великобритания",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-01-mexico",
+      "unitId": "as1-extra-01",
+      "order": 6,
+      "en": "Mexico",
+      "ru": "Мексика",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-01-fat",
+      "unitId": "as1-extra-01",
+      "order": 7,
+      "en": "fat",
+      "ru": "толстый",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-01-mat",
+      "unitId": "as1-extra-01",
+      "order": 8,
+      "en": "mat",
+      "ru": "коврик",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-01-fine",
+      "unitId": "as1-extra-01",
+      "order": 9,
+      "en": "fine",
+      "ru": "хорошо",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-01-goodbye",
+      "unitId": "as1-extra-01",
+      "order": 10,
+      "en": "goodbye",
+      "ru": "до свидания",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "пока"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-01-thank-you",
+      "unitId": "as1-extra-01",
+      "order": 11,
+      "en": "thank you",
+      "ru": "спасибо",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-01-how-old",
+      "unitId": "as1-extra-01",
+      "order": 12,
+      "en": "how old",
+      "ru": "сколько лет",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-02-old",
+      "unitId": "as1-extra-02",
+      "order": 1,
+      "en": "old",
+      "ru": "старый",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-02-new",
+      "unitId": "as1-extra-02",
+      "order": 2,
+      "en": "new",
+      "ru": "новый",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-02-paint",
+      "unitId": "as1-extra-02",
+      "order": 3,
+      "en": "paint",
+      "ru": "краска",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-02-paintbrush",
+      "unitId": "as1-extra-02",
+      "order": 4,
+      "en": "paintbrush",
+      "ru": "кисточка",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "кисть"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-02-picture",
+      "unitId": "as1-extra-02",
+      "order": 5,
+      "en": "picture",
+      "ru": "картинка",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "рисунок"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-02-present",
+      "unitId": "as1-extra-02",
+      "order": 6,
+      "en": "present",
+      "ru": "подарок",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-02-yes",
+      "unitId": "as1-extra-02",
+      "order": 7,
+      "en": "yes",
+      "ru": "да",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-02-no",
+      "unitId": "as1-extra-02",
+      "order": 8,
+      "en": "no",
+      "ru": "нет",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-02-please",
+      "unitId": "as1-extra-02",
+      "order": 9,
+      "en": "please",
+      "ru": "пожалуйста",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-03-mother",
+      "unitId": "as1-extra-03",
+      "order": 1,
+      "en": "mother",
+      "ru": "мать",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "мама"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-03-father",
+      "unitId": "as1-extra-03",
+      "order": 2,
+      "en": "father",
+      "ru": "отец",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "папа"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-03-wedding",
+      "unitId": "as1-extra-03",
+      "order": 3,
+      "en": "wedding",
+      "ru": "свадьба",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-03-flower",
+      "unitId": "as1-extra-03",
+      "order": 4,
+      "en": "flower",
+      "ru": "цветок",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-03-beautiful",
+      "unitId": "as1-extra-03",
+      "order": 5,
+      "en": "beautiful",
+      "ru": "красивый",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "красивая"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-03-toy",
+      "unitId": "as1-extra-03",
+      "order": 6,
+      "en": "toy",
+      "ru": "игрушка",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-03-country",
+      "unitId": "as1-extra-03",
+      "order": 7,
+      "en": "country",
+      "ru": "страна",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-03-his",
+      "unitId": "as1-extra-03",
+      "order": 8,
+      "en": "his",
+      "ru": "его",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-03-her",
+      "unitId": "as1-extra-03",
+      "order": 9,
+      "en": "her",
+      "ru": "её",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "ее"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-03-my",
+      "unitId": "as1-extra-03",
+      "order": 10,
+      "en": "my",
+      "ru": "мой",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "моя",
+        "моё",
+        "мои"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-03-your",
+      "unitId": "as1-extra-03",
+      "order": 11,
+      "en": "your",
+      "ru": "твой",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "твоя",
+        "твоё",
+        "ваш"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-03-this",
+      "unitId": "as1-extra-03",
+      "order": 12,
+      "en": "this",
+      "ru": "этот",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "эта",
+        "это"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-03-that",
+      "unitId": "as1-extra-03",
+      "order": 13,
+      "en": "that",
+      "ru": "тот",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "та",
+        "то"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-03-wig",
+      "unitId": "as1-extra-03",
+      "order": 14,
+      "en": "wig",
+      "ru": "парик",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-03-wind",
+      "unitId": "as1-extra-03",
+      "order": 15,
+      "en": "wind",
+      "ru": "ветер",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-03-fig",
+      "unitId": "as1-extra-03",
+      "order": 16,
+      "en": "fig",
+      "ru": "инжир",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-04-scared",
+      "unitId": "as1-extra-04",
+      "order": 1,
+      "en": "scared",
+      "ru": "испуганный",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "напуганный"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-04-ready",
+      "unitId": "as1-extra-04",
+      "order": 2,
+      "en": "ready",
+      "ru": "готовый",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-04-kitten",
+      "unitId": "as1-extra-04",
+      "order": 3,
+      "en": "kitten",
+      "ru": "котёнок",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "котенок"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-04-grey",
+      "unitId": "as1-extra-04",
+      "order": 4,
+      "en": "grey",
+      "ru": "серый",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-04-brown",
+      "unitId": "as1-extra-04",
+      "order": 5,
+      "en": "brown",
+      "ru": "коричневый",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-04-spider",
+      "unitId": "as1-extra-04",
+      "order": 6,
+      "en": "spider",
+      "ru": "паук",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-04-dog",
+      "unitId": "as1-extra-04",
+      "order": 7,
+      "en": "dog",
+      "ru": "собака",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-04-log",
+      "unitId": "as1-extra-04",
+      "order": 8,
+      "en": "log",
+      "ru": "бревно",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-04-bog",
+      "unitId": "as1-extra-04",
+      "order": 9,
+      "en": "bog",
+      "ru": "болото",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-04-wrong",
+      "unitId": "as1-extra-04",
+      "order": 10,
+      "en": "wrong",
+      "ru": "не так",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "неправильный"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-04-worry",
+      "unitId": "as1-extra-04",
+      "order": 11,
+      "en": "worry",
+      "ru": "волноваться",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "беспокоиться"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-04-today",
+      "unitId": "as1-extra-04",
+      "order": 12,
+      "en": "today",
+      "ru": "сегодня",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-05-run",
+      "unitId": "as1-extra-05",
+      "order": 1,
+      "en": "run",
+      "ru": "бегать",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "бежать"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-05-see",
+      "unitId": "as1-extra-05",
+      "order": 2,
+      "en": "see",
+      "ru": "видеть",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-05-hear",
+      "unitId": "as1-extra-05",
+      "order": 3,
+      "en": "hear",
+      "ru": "слышать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-05-walk",
+      "unitId": "as1-extra-05",
+      "order": 4,
+      "en": "walk",
+      "ru": "ходить",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "гулять"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-05-ride-a-horse",
+      "unitId": "as1-extra-05",
+      "order": 5,
+      "en": "ride a horse",
+      "ru": "ездить верхом",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "кататься на лошади"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-05-horse",
+      "unitId": "as1-extra-05",
+      "order": 6,
+      "en": "horse",
+      "ru": "лошадь",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-05-clap",
+      "unitId": "as1-extra-05",
+      "order": 7,
+      "en": "clap",
+      "ru": "хлопать",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "аплодировать"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-05-stamp",
+      "unitId": "as1-extra-05",
+      "order": 8,
+      "en": "stamp",
+      "ru": "топать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-05-forest",
+      "unitId": "as1-extra-05",
+      "order": 9,
+      "en": "forest",
+      "ru": "лес",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-05-china",
+      "unitId": "as1-extra-05",
+      "order": 10,
+      "en": "China",
+      "ru": "Китай",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-05-fish",
+      "unitId": "as1-extra-05",
+      "order": 11,
+      "en": "fish",
+      "ru": "рыба",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-05-fun",
+      "unitId": "as1-extra-05",
+      "order": 12,
+      "en": "fun",
+      "ru": "веселье",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "забава"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-05-can",
+      "unitId": "as1-extra-05",
+      "order": 13,
+      "en": "can",
+      "ru": "мочь",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "уметь"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-05-can-t",
+      "unitId": "as1-extra-05",
+      "order": 14,
+      "en": "can't",
+      "ru": "не мочь",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "не уметь"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-06-playground",
+      "unitId": "as1-extra-06",
+      "order": 1,
+      "en": "playground",
+      "ru": "детская площадка",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "игровая площадка"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-06-circus",
+      "unitId": "as1-extra-06",
+      "order": 2,
+      "en": "circus",
+      "ru": "цирк",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-06-juggle",
+      "unitId": "as1-extra-06",
+      "order": 3,
+      "en": "juggle",
+      "ru": "жонглировать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-06-trapeze",
+      "unitId": "as1-extra-06",
+      "order": 4,
+      "en": "trapeze",
+      "ru": "трапеция",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-06-balloon",
+      "unitId": "as1-extra-06",
+      "order": 5,
+      "en": "balloon",
+      "ru": "воздушный шарик",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "шарик"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-06-paper",
+      "unitId": "as1-extra-06",
+      "order": 6,
+      "en": "paper",
+      "ru": "бумага",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-06-water",
+      "unitId": "as1-extra-06",
+      "order": 7,
+      "en": "water",
+      "ru": "вода",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-06-box",
+      "unitId": "as1-extra-06",
+      "order": 8,
+      "en": "box",
+      "ru": "коробка",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "ящик"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-06-crayon",
+      "unitId": "as1-extra-06",
+      "order": 9,
+      "en": "crayon",
+      "ru": "восковой мелок",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "мелок"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-06-under",
+      "unitId": "as1-extra-06",
+      "order": 10,
+      "en": "under",
+      "ru": "под",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-06-on",
+      "unitId": "as1-extra-06",
+      "order": 11,
+      "en": "on",
+      "ru": "на",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-06-in",
+      "unitId": "as1-extra-06",
+      "order": 12,
+      "en": "in",
+      "ru": "в",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "внутри"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-06-next-to",
+      "unitId": "as1-extra-06",
+      "order": 13,
+      "en": "next to",
+      "ru": "рядом с",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "возле"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-06-where",
+      "unitId": "as1-extra-06",
+      "order": 14,
+      "en": "where",
+      "ru": "где",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "куда"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-07-head",
+      "unitId": "as1-extra-07",
+      "order": 1,
+      "en": "head",
+      "ru": "голова",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-07-nose",
+      "unitId": "as1-extra-07",
+      "order": 2,
+      "en": "nose",
+      "ru": "нос",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-07-hair",
+      "unitId": "as1-extra-07",
+      "order": 3,
+      "en": "hair",
+      "ru": "волосы",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-07-hand",
+      "unitId": "as1-extra-07",
+      "order": 4,
+      "en": "hand",
+      "ru": "кисть руки",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "рука"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-07-feet",
+      "unitId": "as1-extra-07",
+      "order": 5,
+      "en": "feet",
+      "ru": "ступни",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "стопы"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-07-finger",
+      "unitId": "as1-extra-07",
+      "order": 6,
+      "en": "finger",
+      "ru": "палец руки",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-07-blonde",
+      "unitId": "as1-extra-07",
+      "order": 7,
+      "en": "blonde",
+      "ru": "светловолосый",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "блондин"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-07-tortoise",
+      "unitId": "as1-extra-07",
+      "order": 8,
+      "en": "tortoise",
+      "ru": "черепаха",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-07-bush-baby",
+      "unitId": "as1-extra-07",
+      "order": 9,
+      "en": "bush baby",
+      "ru": "галаго",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-07-tree",
+      "unitId": "as1-extra-07",
+      "order": 10,
+      "en": "tree",
+      "ru": "дерево",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-07-chocolate",
+      "unitId": "as1-extra-07",
+      "order": 11,
+      "en": "chocolate",
+      "ru": "шоколад",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-07-cherry",
+      "unitId": "as1-extra-07",
+      "order": 12,
+      "en": "cherry",
+      "ru": "вишня",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "черешня"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-07-chew",
+      "unitId": "as1-extra-07",
+      "order": 13,
+      "en": "chew",
+      "ru": "жевать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-08-glove",
+      "unitId": "as1-extra-08",
+      "order": 1,
+      "en": "glove",
+      "ru": "перчатка",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-08-wet",
+      "unitId": "as1-extra-08",
+      "order": 2,
+      "en": "wet",
+      "ru": "мокрый",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "влажный"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-08-weather",
+      "unitId": "as1-extra-08",
+      "order": 3,
+      "en": "weather",
+      "ru": "погода",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-08-string",
+      "unitId": "as1-extra-08",
+      "order": 4,
+      "en": "string",
+      "ru": "нитка",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "верёвочка"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-08-puppet",
+      "unitId": "as1-extra-08",
+      "order": 5,
+      "en": "puppet",
+      "ru": "кукла-марионетка",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "кукла"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-08-crocodile",
+      "unitId": "as1-extra-08",
+      "order": 6,
+      "en": "crocodile",
+      "ru": "крокодил",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-08-mouth",
+      "unitId": "as1-extra-08",
+      "order": 7,
+      "en": "mouth",
+      "ru": "рот",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-08-pirate",
+      "unitId": "as1-extra-08",
+      "order": 8,
+      "en": "pirate",
+      "ru": "пират",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-08-wear",
+      "unitId": "as1-extra-08",
+      "order": 9,
+      "en": "wear",
+      "ru": "носить",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "быть одетым"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-08-wearing",
+      "unitId": "as1-extra-08",
+      "order": 10,
+      "en": "wearing",
+      "ru": "одет в",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "ношу"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-eleven",
+      "unitId": "as1-extra-09",
+      "order": 1,
+      "en": "eleven",
+      "ru": "одиннадцать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-twelve",
+      "unitId": "as1-extra-09",
+      "order": 2,
+      "en": "twelve",
+      "ru": "двенадцать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-thirteen",
+      "unitId": "as1-extra-09",
+      "order": 3,
+      "en": "thirteen",
+      "ru": "тринадцать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-fourteen",
+      "unitId": "as1-extra-09",
+      "order": 4,
+      "en": "fourteen",
+      "ru": "четырнадцать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-fifteen",
+      "unitId": "as1-extra-09",
+      "order": 5,
+      "en": "fifteen",
+      "ru": "пятнадцать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-sixteen",
+      "unitId": "as1-extra-09",
+      "order": 6,
+      "en": "sixteen",
+      "ru": "шестнадцать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-seventeen",
+      "unitId": "as1-extra-09",
+      "order": 7,
+      "en": "seventeen",
+      "ru": "семнадцать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-eighteen",
+      "unitId": "as1-extra-09",
+      "order": 8,
+      "en": "eighteen",
+      "ru": "восемнадцать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-nineteen",
+      "unitId": "as1-extra-09",
+      "order": 9,
+      "en": "nineteen",
+      "ru": "девятнадцать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-twenty",
+      "unitId": "as1-extra-09",
+      "order": 10,
+      "en": "twenty",
+      "ru": "двадцать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-bedroom",
+      "unitId": "as1-extra-09",
+      "order": 11,
+      "en": "bedroom",
+      "ru": "спальня",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-monster",
+      "unitId": "as1-extra-09",
+      "order": 12,
+      "en": "monster",
+      "ru": "монстр",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "чудовище"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-sleep",
+      "unitId": "as1-extra-09",
+      "order": 13,
+      "en": "sleep",
+      "ru": "спать",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-cupboard",
+      "unitId": "as1-extra-09",
+      "order": 14,
+      "en": "cupboard",
+      "ru": "шкафчик",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "шкаф"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-toy-cupboard",
+      "unitId": "as1-extra-09",
+      "order": 15,
+      "en": "toy cupboard",
+      "ru": "шкаф для игрушек",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-photo",
+      "unitId": "as1-extra-09",
+      "order": 16,
+      "en": "photo",
+      "ru": "фотография",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "фото"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-boring",
+      "unitId": "as1-extra-09",
+      "order": 17,
+      "en": "boring",
+      "ru": "скучный",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-nice",
+      "unitId": "as1-extra-09",
+      "order": 18,
+      "en": "nice",
+      "ru": "приятный",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "милый"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-09-fantastic",
+      "unitId": "as1-extra-09",
+      "order": 19,
+      "en": "fantastic",
+      "ru": "фантастический",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "замечательный"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-10-coconut",
+      "unitId": "as1-extra-10",
+      "order": 1,
+      "en": "coconut",
+      "ru": "кокос",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-10-melon",
+      "unitId": "as1-extra-10",
+      "order": 2,
+      "en": "melon",
+      "ru": "дыня",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-10-ice-cream",
+      "unitId": "as1-extra-10",
+      "order": 3,
+      "en": "ice cream",
+      "ru": "мороженое",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-10-smell",
+      "unitId": "as1-extra-10",
+      "order": 4,
+      "en": "smell",
+      "ru": "запах",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "пахнуть"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-10-taste",
+      "unitId": "as1-extra-10",
+      "order": 5,
+      "en": "taste",
+      "ru": "вкус",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "пробовать на вкус"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-10-durian",
+      "unitId": "as1-extra-10",
+      "order": 6,
+      "en": "durian",
+      "ru": "дуриан",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-10-jackfruit",
+      "unitId": "as1-extra-10",
+      "order": 7,
+      "en": "jackfruit",
+      "ru": "джекфрут",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-10-rambutan",
+      "unitId": "as1-extra-10",
+      "order": 8,
+      "en": "rambutan",
+      "ru": "рамбутан",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-10-fruit",
+      "unitId": "as1-extra-10",
+      "order": 9,
+      "en": "fruit",
+      "ru": "фрукт",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "плод"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-10-healthy",
+      "unitId": "as1-extra-10",
+      "order": 10,
+      "en": "healthy",
+      "ru": "полезный",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "здоровый"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-10-yummy",
+      "unitId": "as1-extra-10",
+      "order": 11,
+      "en": "yummy",
+      "ru": "вкусный",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "ням-ням"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-10-amazing",
+      "unitId": "as1-extra-10",
+      "order": 12,
+      "en": "amazing",
+      "ru": "удивительный",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "потрясающий"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-10-bus",
+      "unitId": "as1-extra-10",
+      "order": 13,
+      "en": "bus",
+      "ru": "автобус",
+      "acceptedEn": [],
+      "acceptedRu": [],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-10-eat",
+      "unitId": "as1-extra-10",
+      "order": 14,
+      "en": "eat",
+      "ru": "есть",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "кушать"
+      ],
+      "semanticCategory": "supplementary"
+    },
+    {
+      "id": "as1-extra-10-like",
+      "unitId": "as1-extra-10",
+      "order": 15,
+      "en": "like",
+      "ru": "нравиться",
+      "acceptedEn": [],
+      "acceptedRu": [
+        "любить"
+      ],
+      "semanticCategory": "supplementary"
+    }
+  ]
+}

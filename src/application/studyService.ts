@@ -1,4 +1,5 @@
 import type { ConceptDefinition } from "../domain/curriculum/model";
+import { newConceptsAcrossSources } from "../domain/curriculum/newConcepts";
 import {
   applyReviewRating,
   markSuccessfulSpokenRecall,
@@ -59,11 +60,9 @@ async function createNextSession(now: number): Promise<StudySession | null> {
   const introducingUnits = (await db.units.where("state").equals("introducing").toArray())
     .sort((left, right) => left.number - right.number);
   const progress = new Set((await db.conceptProgress.toArray()).filter((item) => item.introducedAt !== null).map((item) => item.conceptId));
-  const newConcepts = introducingUnits.flatMap((unit) =>
-    unit.conceptIds.flatMap((id) => {
-      const concept = conceptById.get(id);
-      return concept && !progress.has(id) && !concept.retired ? [concept] : [];
-    }),
+  const newConcepts = newConceptsAcrossSources(
+    introducingUnits.filter((unit) => unit.available !== false),
+    concepts.filter((concept) => !concept.retired), progress, progress.size,
   );
   const seed = `${dateKey}:${crypto.randomUUID()}`;
   const questions = generateSession({

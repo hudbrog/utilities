@@ -4,6 +4,7 @@ import { normalizeAnswer } from "../../domain/exercises/normalization";
 import { loadCurriculumReviewPackage } from "../curriculum/reviewPackage";
 import type { EnglishSrsDatabase } from "./database";
 import type { CurriculumReviewDecision, CurriculumReviewUnit } from "./model";
+import { refreshConceptAvailability } from "./conceptAvailability";
 
 export type EffectiveReviewStatus = "approved" | "edited" | "excluded" | "deferred" | "auto_reviewed" | "needs_human_review";
 
@@ -63,9 +64,9 @@ export async function initializeCurriculumReview(db: EnglishSrsDatabase, now = D
     .filter((unit) => approvedUnits.has(unit.id) && approvedUnits.get(unit.id)!.reviewFingerprint !== unit.reviewFingerprint)
     .map((unit) => unit.id);
   if (staleActiveUnitIds.length) {
-    await db.transaction("rw", [db.units, db.concepts], async () => {
-      await db.units.where("id").anyOf(staleActiveUnitIds).modify({ state: "inactive" });
-      await db.concepts.where("unitId").anyOf(staleActiveUnitIds).modify({ retired: true });
+    await db.transaction("rw", [db.units, db.concepts, db.conceptProgress], async () => {
+      await db.units.where("id").anyOf(staleActiveUnitIds).modify({ state: "inactive", available: false });
+      await refreshConceptAvailability(db);
     });
   }
   await db.appMeta.put({ key: "reviewPackageVersion", value: reviewPackage.curriculumVersion, updatedAt: now });
@@ -129,9 +130,11 @@ export async function saveReviewDecision(
     if (unit.approvedAt !== null && unit.unresolvedCount === 0) {
       await materializeReviewUnit(db, reviewPackage, unit, unit.approvedAt);
     } else if (await db.concepts.get(conceptId)) {
-      // An unresolved decision must not reactivate an installed target.
-      await db.concepts.update(conceptId, { retired: true });
-      await db.conceptProgress.update(conceptId, { retired: true });
+      // Withhold the unresolved source membership, preserving other curricula.
+      await db.units.where("id").equals(proposal.unitId).modify((installed) => {
+        installed.conceptIds = installed.conceptIds.filter((id) => id !== conceptId);
+      });
+      await refreshConceptAvailability(db);
     }
   });
 }
@@ -162,7 +165,7 @@ function uniqueAliases(primary: string, values: string[], language: "en" | "ru")
   });
 }
 
-function toConcept(word: ReviewWord): ConceptDefinition {
+export function toConcept(word: ReviewWord): ConceptDefinition {
   const concept: ConceptDefinition = {
     id: word.proposal.conceptId,
     unitId: word.proposal.unitId,
@@ -227,19 +230,13 @@ export async function materializeReviewUnit(
   const approval: CurriculumReviewUnit = { unitId: unit.unit.id, reviewFingerprint: unit.unit.reviewFingerprint, approvedAt };
   await db.transaction("rw", [db.units, db.concepts, db.conceptProgress, db.curriculumReviewUnits, db.appMeta], async () => {
     const previous = await db.units.get(unit.unit.id);
-    const nextConceptIds = new Set(activeUnit.conceptIds);
-    const removedConceptIds = previous?.conceptIds.filter((conceptId) => !nextConceptIds.has(conceptId)) ?? [];
     const progress = await db.conceptProgress.bulkGet(activeUnit.conceptIds);
     const hasUnintroducedWords = progress.some((item) => item?.introducedAt == null);
     const state = !concepts.length || (previous?.state === "fully_introduced" && hasUnintroducedWords)
       ? "inactive" : previous?.state ?? "inactive";
-    await db.units.put({ ...activeUnit, state });
+    await db.units.put({ ...activeUnit, state, available: true, curriculumId: "duolingo-ru-en", curriculumTitle: "Duolingo" });
     await db.concepts.bulkPut(concepts.map((concept) => ({ ...concept, retired: false })));
-    if (activeUnit.conceptIds.length) await db.conceptProgress.where("conceptId").anyOf(activeUnit.conceptIds).modify({ retired: false });
-    if (removedConceptIds.length) {
-      await db.concepts.where("id").anyOf(removedConceptIds).modify({ retired: true });
-      await db.conceptProgress.where("conceptId").anyOf(removedConceptIds).modify({ retired: true });
-    }
+    await refreshConceptAvailability(db);
     await db.curriculumReviewUnits.put(approval);
     await db.appMeta.put({ key: "curriculumVersion", value: reviewPackage.curriculumVersion, updatedAt: approvedAt });
     await db.appMeta.put({ key: "sourceFingerprint", value: reviewPackage.sourceFingerprint, updatedAt: approvedAt });

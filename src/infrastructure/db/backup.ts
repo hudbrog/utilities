@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { unitDefinitionSchema } from "../../domain/curriculum/schema";
+import { unitDefinitionSchema, conceptDefinitionSchema, curriculumBundleSchema } from "../../domain/curriculum/schema";
 import { normalizeDirectionState } from "../../domain/scheduler/scheduler";
 import type { EnglishSrsDatabase } from "./database";
 import type { MutableBackupPayload } from "./model";
@@ -15,7 +15,10 @@ const settingsSchema = z.object({
   listeningAudioRatio: z.number().min(0).max(1), englishLocale: z.enum(["en-US", "en-GB"]),
   parentPinHash: z.string().optional(),
 });
-const installedUnitSchema = unitDefinitionSchema.extend({ state: z.enum(["inactive", "introducing", "fully_introduced"]) });
+const installedUnitSchema = unitDefinitionSchema.extend({
+  state: z.enum(["inactive", "introducing", "fully_introduced"]),
+  curriculumId: z.string().optional(), curriculumTitle: z.string().optional(), available: z.boolean().optional(),
+});
 const conceptProgressSchema = z.object({
   conceptId: z.string().min(1), introducedAt: z.number().nullable(), introducedFromUnitId: z.string(),
   skipped: z.boolean(), retired: z.boolean(),
@@ -76,14 +79,36 @@ const legacyPayloadSchema = z.object({
 const versionTwoPayloadSchema = legacyPayloadSchema.extend({
   curriculumReviewDecisions: z.array(reviewDecisionSchema), curriculumReviewUnits: z.array(reviewUnitSchema),
 });
-const payloadSchema = versionTwoPayloadSchema.extend({
+const versionThreePayloadSchema = versionTwoPayloadSchema.extend({
   directionStates: z.array(directionStateSchema), attempts: z.array(attemptSchema),
 });
 
+const payloadSchema = versionThreePayloadSchema.extend({
+  definitionsIncluded: z.boolean(),
+  conceptDefinitions: z.array(conceptDefinitionSchema.extend({ retired: z.boolean() })),
+  importedCurricula: z.array(z.object({
+    id: z.string().min(1), title: z.string().min(1), bundle: curriculumBundleSchema,
+    conceptMap: z.record(z.string(), z.string().nullable()), importedAt: z.number(),
+  })),
+}).superRefine((payload, context) => {
+  if (!payload.definitionsIncluded) return;
+  const ids = new Set(payload.conceptDefinitions.map((concept) => concept.id));
+  if (ids.size !== payload.conceptDefinitions.length) context.addIssue({ code: "custom", message: "Duplicate concept definitions" });
+  for (const unit of payload.unitStates) {
+    if (unit.conceptIds.some((id) => !ids.has(id))) context.addIssue({ code: "custom", message: `Missing word in block ${unit.id}` });
+  }
+  for (const source of payload.importedCurricula) {
+    if (source.id !== source.bundle.curriculumId || Object.values(source.conceptMap).some((id) => id !== null && !ids.has(id))) {
+      context.addIssue({ code: "custom", message: "Invalid imported curriculum mapping" });
+    }
+  }
+});
+
 export const backupEnvelopeSchema = z.object({
-  format: z.literal("english-srs-backup"), backupSchemaVersion: z.literal(3),
+  format: z.literal("english-srs-backup"), backupSchemaVersion: z.literal(4),
   exportedAt: z.iso.datetime(), appVersion: z.string().min(1), curriculumVersion: z.string(), payload: payloadSchema,
 });
+const versionThreeBackupEnvelopeSchema = backupEnvelopeSchema.extend({ backupSchemaVersion: z.literal(3), payload: versionThreePayloadSchema });
 const versionTwoBackupEnvelopeSchema = z.object({
   format: z.literal("english-srs-backup"), backupSchemaVersion: z.literal(2),
   exportedAt: z.iso.datetime(), appVersion: z.string().min(1), curriculumVersion: z.string(), payload: versionTwoPayloadSchema,
@@ -100,26 +125,32 @@ export async function createBackup(
   appVersion: string,
   exportedAt = new Date().toISOString(),
 ): Promise<BackupEnvelope> {
-  const [settings, unitStates, conceptProgress, directionStates, attempts, answerOverrides, dailyLedgers, curriculumReviewDecisions, curriculumReviewUnits, curriculumMeta] =
+  const [settings, unitStates, conceptProgress, directionStates, attempts, answerOverrides, dailyLedgers, curriculumReviewDecisions, curriculumReviewUnits, curriculumMeta, importedCurricula, conceptDefinitions] =
     await db.transaction(
       "r",
-      [db.settings, db.units, db.conceptProgress, db.directionStates, db.attempts, db.answerOverrides, db.dailyLedgers, db.curriculumReviewDecisions, db.curriculumReviewUnits, db.appMeta],
+      [db.settings, db.units, db.conceptProgress, db.directionStates, db.attempts, db.answerOverrides, db.dailyLedgers, db.curriculumReviewDecisions, db.curriculumReviewUnits, db.appMeta, db.importedCurricula, db.concepts],
       () => Promise.all([
         db.settings.toArray(), db.units.toArray(), db.conceptProgress.toArray(), db.directionStates.toArray(),
         db.attempts.toArray(), db.answerOverrides.toArray(), db.dailyLedgers.toArray(), db.curriculumReviewDecisions.toArray(),
         db.curriculumReviewUnits.toArray(), db.appMeta.get("curriculumVersion"),
+        db.importedCurricula.toArray(), db.concepts.toArray(),
       ]),
     );
   return backupEnvelopeSchema.parse({
-    format: "english-srs-backup", backupSchemaVersion: 3, exportedAt, appVersion,
+    format: "english-srs-backup", backupSchemaVersion: 4, exportedAt, appVersion,
     curriculumVersion: curriculumMeta?.value ?? "",
-    payload: { settings, unitStates, conceptProgress, directionStates, attempts, answerOverrides, dailyLedgers, curriculumReviewDecisions, curriculumReviewUnits },
+    payload: { settings, unitStates, conceptProgress, directionStates, attempts, answerOverrides, dailyLedgers, curriculumReviewDecisions, curriculumReviewUnits, importedCurricula, conceptDefinitions, definitionsIncluded: true },
   });
 }
 
 export function parseBackup(input: unknown): BackupEnvelope {
   const current = backupEnvelopeSchema.safeParse(input);
   if (current.success) return current.data;
+  const versionThree = versionThreeBackupEnvelopeSchema.safeParse(input);
+  if (versionThree.success) return {
+    ...versionThree.data, backupSchemaVersion: 4,
+    payload: { ...versionThree.data.payload, importedCurricula: [], conceptDefinitions: [], definitionsIncluded: false },
+  };
   const versionTwo = versionTwoBackupEnvelopeSchema.safeParse(input);
   const legacy = versionTwo.success ? versionTwo.data : legacyBackupEnvelopeSchema.parse(input);
   const review = versionTwo.success
@@ -127,10 +158,11 @@ export function parseBackup(input: unknown): BackupEnvelope {
     : { curriculumReviewDecisions: [], curriculumReviewUnits: [] };
   return {
     ...legacy,
-    backupSchemaVersion: 3,
+    backupSchemaVersion: 4,
     payload: {
       ...legacy.payload,
       ...review,
+      importedCurricula: [], conceptDefinitions: [], definitionsIncluded: false,
       directionStates: legacy.payload.directionStates.map((state) => normalizeDirectionState(state as never)),
       attempts: legacy.payload.attempts.map((attempt) => ({
         ...attempt,
@@ -145,8 +177,18 @@ export async function restoreBackup(db: EnglishSrsDatabase, input: unknown): Pro
   const payload = backup.payload as MutableBackupPayload;
   await db.transaction(
     "rw",
-    [db.settings, db.units, db.concepts, db.conceptProgress, db.directionStates, db.attempts, db.answerOverrides, db.dailyLedgers, db.sessions, db.sessionQuestions, db.curriculumReviewDecisions, db.curriculumReviewUnits],
+    [db.settings, db.units, db.concepts, db.conceptProgress, db.directionStates, db.attempts, db.answerOverrides, db.dailyLedgers, db.sessions, db.sessionQuestions, db.curriculumReviewDecisions, db.curriculumReviewUnits, db.importedCurricula],
     async () => {
+      if (payload.definitionsIncluded) {
+        await db.concepts.clear();
+        await db.units.clear();
+        await db.concepts.bulkAdd(payload.conceptDefinitions);
+        await db.units.bulkAdd(payload.unitStates);
+      } else {
+        // Old backups contain no imported definitions; withhold local-only sources.
+        await db.units.filter((unit) => Boolean(unit.curriculumId && unit.curriculumId !== "duolingo-ru-en"))
+          .modify({ available: false, state: "inactive" });
+      }
       const installedUnits = new Map((await db.units.toArray()).map((unit) => [unit.id, unit]));
       const installedConceptIds = new Set((await db.concepts.toCollection().primaryKeys()).map(String));
       const restoredUnits = payload.unitStates
@@ -156,6 +198,7 @@ export async function restoreBackup(db: EnglishSrsDatabase, input: unknown): Pro
         db.settings.clear(), db.conceptProgress.clear(), db.directionStates.clear(), db.attempts.clear(),
         db.answerOverrides.clear(), db.dailyLedgers.clear(), db.sessions.clear(), db.sessionQuestions.clear(),
         db.curriculumReviewDecisions.clear(), db.curriculumReviewUnits.clear(),
+        db.importedCurricula.clear(),
       ]);
       await db.units.bulkPut(restoredUnits);
       await Promise.all([
@@ -167,6 +210,7 @@ export async function restoreBackup(db: EnglishSrsDatabase, input: unknown): Pro
         db.directionStates.bulkAdd(payload.directionStates), db.attempts.bulkAdd(payload.attempts),
         db.answerOverrides.bulkAdd(payload.answerOverrides), db.dailyLedgers.bulkAdd(payload.dailyLedgers),
         db.curriculumReviewDecisions.bulkAdd(payload.curriculumReviewDecisions), db.curriculumReviewUnits.bulkAdd(payload.curriculumReviewUnits),
+        db.importedCurricula.bulkAdd(payload.importedCurricula),
       ]);
       await recoverUnfinishedIntroductions(db);
     },
