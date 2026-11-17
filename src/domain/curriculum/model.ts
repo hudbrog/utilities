@@ -22,7 +22,7 @@ export type ConceptDefinition = {
 
 export type CurriculumBundle = {
   schemaVersion: 1;
-  curriculumId: "duolingo-ru-en";
+  curriculumId: string;
   curriculumVersion: string;
   sourceFingerprint: string;
   units: UnitDefinition[];

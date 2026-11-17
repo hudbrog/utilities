@@ -18,6 +18,7 @@ import {
   type ParentWordRow,
 } from "../../application/parentService";
 import type { PwaState, PwaUpdateCheckResult } from "../../pwaUpdate";
+import { CurriculumImport } from "./CurriculumImport";
 
 type Tab = "today" | "course" | "words" | "settings";
 type UpdateCheckState = "idle" | "checking" | PwaUpdateCheckResult | "error";
@@ -155,6 +156,8 @@ export function ParentApp({
   const [snapshot, setSnapshot] = useState<ParentSnapshot | null>(null);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [selectedReviewUnit, setSelectedReviewUnit] = useState<string | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState("duolingo-ru-en");
+  const [expandedImportedUnit, setExpandedImportedUnit] = useState<string | null>(null);
   const [editingReviewWord, setEditingReviewWord] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -310,7 +313,32 @@ export function ParentApp({
 
       {tab === "course" && (
         <section className="parent-panel">
-          {reviewUnit ? (
+          <label className="field-label">Курс<select value={selectedCourse} onChange={(event) => { setSelectedCourse(event.target.value); setSelectedReviewUnit(null); setExpandedImportedUnit(null); }}>
+            <option value="duolingo-ru-en">Duolingo</option>
+            {snapshot.importedCurricula.map((source) => <option key={source.id} value={source.id}>{source.title}</option>)}
+          </select></label>
+          <CurriculumImport academyInstalled={snapshot.importedCurricula.some((source) => source.id === "academy-stars-1-workbook-2017")} onImported={async (id) => {
+            await refresh(); setSelectedCourse(id); setSelectedReviewUnit(null); setMessage("Курс добавлен. Включите нужные блоки; остальные останутся на паузе.");
+          }} />
+          {selectedCourse !== "duolingo-ru-en" ? <>
+            <h2>{snapshot.importedCurricula.find((source) => source.id === selectedCourse)?.title}</h2>
+            <p className="parent-muted">Выберите блоки, которые Аня проходит сейчас. Основные и дополнительные слова включаются отдельно. Уже введённые слова продолжают повторяться по общему расписанию.</p>
+            <div className="unit-list">{snapshot.units.filter((unit) => unit.curriculumId === selectedCourse).map((unit) => {
+              const introduced = unit.conceptIds.filter((id) => snapshot.words.find((item) => item.concept.id === id)?.progressIntroduced).length;
+              return <article key={unit.id} className={unit.state === "introducing" ? "unit-card unit-card--active" : "unit-card"}>
+                <div><h3>{unit.titleRu ?? unit.id}</h3><small>{introduced} / {unit.conceptIds.length} уже в занятиях · {unit.conceptIds.length - introduced} новых</small></div>
+                <div className="unit-card-actions">
+                  <button className="button button--secondary" onClick={() => setExpandedImportedUnit(expandedImportedUnit === unit.id ? null : unit.id)}>Слова</button>
+                  {unit.state === "introducing" ? <button className="button button--secondary" onClick={() => void mutateReview(() => pauseNewWords(unit.id), "Новые слова блока на паузе; повторения продолжаются.")}>Пауза</button>
+                    : <button className="button button--primary" disabled={!unit.conceptIds.length || introduced === unit.conceptIds.length} onClick={() => void mutateReview(() => startUnit(unit.id), "Блок добавлен в занятия.")}>{introduced === unit.conceptIds.length ? "Все слова уже введены" : "Добавить в занятия"}</button>}
+                </div>
+                {expandedImportedUnit === unit.id && <div className="word-list import-unit-words">{unit.conceptIds.map((id) => {
+                  const item = snapshot.words.find((candidate) => candidate.concept.id === id);
+                  return item && <button key={id} onClick={() => setSelectedWord(id)}><strong>{item.concept.en}</strong><span>{item.concept.ru}</span><small>{item.progressIntroduced ? "уже в занятиях" : "новое"}</small></button>;
+                })}</div>}
+              </article>;
+            })}</div>
+          </> : reviewUnit ? (
             <>
               <button className="text-button" onClick={() => setSelectedReviewUnit(null)}>← Все блоки</button>
               <div className="review-unit-heading">
@@ -341,7 +369,7 @@ export function ParentApp({
           ) : (
             <>
               <p className="parent-eyebrow">Курс</p><h2>Проверка и добавление блоков</h2>
-              <p className="parent-muted">Сначала одобрите блок, затем добавьте его в занятия. Можно включить несколько блоков — новые слова пойдут по порядку, начиная с более раннего.</p>
+              <p className="parent-muted">Сначала одобрите блок, затем добавьте его в занятия. Внутри курса слова идут по порядку блоков. Активные курсы чередуются и делят общий дневной лимит новых слов.</p>
               <div className="unit-list">{snapshot.reviewUnits.map((candidate) => {
                 const active = snapshot.units.find((unit) => unit.id === candidate.unit.id);
                 const introduced = active?.conceptIds.filter((id) => snapshot.words.find((item) => item.concept.id === id)?.progressIntroduced).length ?? 0;
@@ -353,7 +381,7 @@ export function ParentApp({
                       {candidate.approvedAt && (active?.state === "introducing"
                         ? <button className="button button--secondary" onClick={() => void mutateReview(() => pauseNewWords(candidate.unit.id), "Блок поставлен на паузу.")}>Пауза</button>
                         : active?.state === "fully_introduced"
-                          ? <button className="button button--secondary" disabled>Блок завершён</button>
+                          ? <button className="button button--secondary" disabled>Все слова введены</button>
                           : <button className="button button--primary" onClick={() => void mutateReview(() => startUnit(candidate.unit.id), "Блок добавлен в занятия.")}>Добавить в занятия</button>)}
                     </div>
                   </article>

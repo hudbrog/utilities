@@ -12,7 +12,12 @@ import {
   loadReviewUnits,
   saveReviewDecision,
   type ReviewUnitSnapshot,
+  toConcept,
 } from "../infrastructure/db/curriculumReviewRepository";
+import { planCurriculumImport, type ImportChoice } from "../domain/curriculum/import";
+import { parseCurriculumBundle } from "../domain/curriculum/schema";
+import { importCurriculum } from "../infrastructure/db/curriculumImportRepository";
+import { refreshConceptAvailability } from "../infrastructure/db/conceptAvailability";
 import { db } from "../infrastructure/db/database";
 import { loadLearnerSettings, normalizeLearnerSettings } from "../infrastructure/db/settingsRepository";
 import type {
@@ -22,6 +27,7 @@ import type {
   InstalledConcept,
   InstalledUnit,
   LearnerSettings,
+  ImportedCurriculum,
 } from "../infrastructure/db/model";
 import type { DirectionState } from "../domain/scheduler/model";
 import { resetSttProblemHistory } from "../domain/scheduler/scheduler";
@@ -45,6 +51,7 @@ export type ParentSnapshot = {
   dueCount: number;
   newAvailableToday: number;
   reviewUnits: ReviewUnitSnapshot[];
+  importedCurricula: ImportedCurriculum[];
 };
 
 async function initialize(now: number): Promise<void> {
@@ -86,10 +93,11 @@ export async function loadParentSnapshot(now = Date.now()): Promise<ParentSnapsh
     attempts: attemptsById.get(concept.id) ?? [],
     override: overrideById.get(concept.id),
   }));
-  const dueCount = states.filter((state) => state.nextDueAt !== null && state.nextDueAt <= now).length;
-  const remainingInActiveUnits = units
-    .filter((unit) => unit.state === "introducing")
-    .reduce((sum, unit) => sum + unit.conceptIds.filter((id) => !progressById.get(id)?.introducedAt).length, 0);
+  const available = new Set(concepts.filter((concept) => !concept.retired).map((concept) => concept.id));
+  const dueCount = states.filter((state) => available.has(state.conceptId) && state.nextDueAt !== null && state.nextDueAt <= now).length;
+  const remainingInActiveUnits = new Set(units
+    .filter((unit) => unit.state === "introducing" && unit.available !== false)
+    .flatMap((unit) => unit.conceptIds.filter((id) => available.has(id) && progressById.get(id)?.introducedAt == null))).size;
   const normalizedSettings = normalizeLearnerSettings(settings);
   const quotaRemaining = Math.max(0, normalizedSettings.dailyNewConceptQuota - (today?.quotaConsumed ?? 0));
   return {
@@ -98,9 +106,33 @@ export async function loadParentSnapshot(now = Date.now()): Promise<ParentSnapsh
     words,
     today: today ?? null,
     dueCount,
-    newAvailableToday: Math.min(remainingInActiveUnits, quotaRemaining),
+    newAvailableToday: normalizedSettings.suppressNewOnBacklog && dueCount > normalizedSettings.backlogThreshold ? 0 : Math.min(remainingInActiveUnits, quotaRemaining),
     reviewUnits,
+    importedCurricula: await db.importedCurricula.toArray(),
   };
+}
+
+async function importCandidates() {
+  const reviewUnits = await loadReviewUnits(db);
+  // Reserve the same identity even for a Duolingo word in a not-yet-started unit.
+  const candidates = new Map(reviewUnits.flatMap(({ words }) => words
+    .filter((word) => word.status !== "excluded" && !word.proposal.unsuitableReason)
+    .map((word) => { const concept = toConcept(word); return [concept.id, concept] as const; })));
+  for (const concept of await db.concepts.filter((item) => !item.retired).toArray()) candidates.set(concept.id, concept);
+  return [...candidates.values()];
+}
+
+export async function previewCurriculumImport(input: unknown) {
+  const bundle = parseCurriculumBundle(input);
+  if (bundle.curriculumId === "duolingo-ru-en") throw new Error("Для Duolingo используйте проверку блоков курса.");
+  if (await db.importedCurricula.get(bundle.curriculumId)) throw new Error("Этот курс уже добавлен. Выберите его в списке курсов.");
+  const candidates = await importCandidates();
+  const introduced = (await db.conceptProgress.toArray()).filter((item) => item.introducedAt !== null).map((item) => item.conceptId);
+  return { bundle, rows: planCurriculumImport(bundle, candidates), introduced };
+}
+
+export async function addCurriculum(input: unknown, title: string, choices: Record<string, ImportChoice>) {
+  return importCurriculum(db, input, title, await importCandidates(), choices);
 }
 
 export async function saveSettings(settings: LearnerSettings): Promise<void> {
@@ -170,15 +202,17 @@ export async function importLearnerBackup(input: unknown): Promise<void> {
     for (const unit of reviewUnits) {
       if (unit.approvedAt !== null) await materializeReviewUnit(db, reviewPackage, unit, unit.approvedAt);
       else {
-        await db.concepts.where("unitId").equals(unit.unit.id).modify({ retired: true });
+        await db.units.where("id").equals(unit.unit.id).modify({ available: false });
       }
     }
     const desiredStateById = new Map(backup.payload.unitStates.map((unit) => [unit.id, unit.state]));
     const validApprovals = new Set(reviewUnits.filter((unit) => unit.approvedAt !== null).map(({ unit }) => unit.id));
+    const importedSources = new Set((await db.importedCurricula.toArray()).map((source) => source.id));
     const installed = await db.units.toArray();
     await db.units.bulkPut(installed.map((unit) => ({
       ...unit,
-      state: validApprovals.has(unit.id) && unit.conceptIds.length ? desiredStateById.get(unit.id) ?? "inactive" : "inactive",
+      state: (validApprovals.has(unit.id) || importedSources.has(unit.curriculumId ?? "")) && unit.conceptIds.length ? desiredStateById.get(unit.id) ?? "inactive" : "inactive",
     })));
+    await refreshConceptAvailability(db);
   });
 }

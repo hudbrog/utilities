@@ -28,6 +28,8 @@ The parent route (`#parent`) provides today's workload, learner settings, diffic
 
 The committed seed contains 1,372 LLM-reviewed proposals across 62 Duome-derived units. The resumable generation, independent review, incremental parent approval, validation, and assembly workflow is documented in [`docs/curriculum/README.md`](docs/curriculum/README.md). Unreviewed proposals are never question targets or correct answers, but non-excluded proposals may safely enlarge the multiple-choice distractor pool.
 
+The parent **Курс** screen also supports Academy Stars 1 (263 vocabulary entries in 22 independently selectable core/extra blocks) and additional JSON curricula. Import previews reuse matching word identities and existing directional progress, ask about ambiguous matches, and leave new blocks inactive until the parent starts them. Active sources share one daily quota and alternate new vocabulary; a shared word is introduced only once. Imported curricula and their identity mappings are included in backup version 4. See [`docs/curriculum/multiple-sources.md`](docs/curriculum/multiple-sources.md) for the import contract, matching policy, and limitations.
+
 The previous math trainer is preserved at [`/utilities/legacy/math-trainer.html`](https://hudbrog.github.io/utilities/legacy/math-trainer.html).
 
 ## Local development

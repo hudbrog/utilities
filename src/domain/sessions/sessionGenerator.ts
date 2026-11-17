@@ -93,8 +93,9 @@ export function generateSession(input: SessionGenerationInput): SessionQuestion[
     .sort((left, right) => compareDue(left, right, input.now));
   const quotaRemaining = Math.max(0, dailyQuota - input.introducedToday);
   const introductionCapacity = Math.floor(chunkSize / 2);
-  const newCount = due.length > backlogThreshold ? 0 : Math.min(quotaRemaining, introductionCapacity, input.newConcepts.length);
-  const newConcepts = input.newConcepts.slice(0, newCount);
+  const uniqueNew = [...new Map(input.newConcepts.map((concept) => [concept.id, concept])).values()];
+  const newCount = due.length > backlogThreshold ? 0 : Math.min(quotaRemaining, introductionCapacity, uniqueNew.length);
+  const newConcepts = uniqueNew.slice(0, newCount);
 
   const firstDirections = newConcepts.map((concept) => introductionQuestion(concept, "en-ru"));
   const secondDirections = newConcepts.map((concept) => introductionQuestion(concept, "ru-en"));

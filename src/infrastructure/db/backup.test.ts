@@ -35,7 +35,7 @@ describe("backup and restore", () => {
     await source.curriculumReviewDecisions.put({ conceptId: "cat", proposalFingerprint: "proposal-1", status: "edited", ru: "кот", acceptedEn: ["kitty"], acceptedRu: [], updatedAt: 6 });
     await source.curriculumReviewUnits.put({ unitId: "unit-1", reviewFingerprint: "review-fingerprint", approvedAt: 7 });
     const backup = await createBackup(source, "0.0.1", "2026-08-14T12:00:00.000Z");
-    expect(backup.backupSchemaVersion).toBe(3);
+    expect(backup.backupSchemaVersion).toBe(4);
     await restoreBackup(target, JSON.parse(JSON.stringify(backup)));
     expect(await target.settings.toArray()).toEqual(await source.settings.toArray());
     expect(await target.directionStates.toArray()).toEqual(await source.directionStates.toArray());
@@ -70,7 +70,7 @@ describe("backup and restore", () => {
         curriculumReviewDecisions: [], curriculumReviewUnits: [],
       },
     });
-    expect(parsed.backupSchemaVersion).toBe(3);
+    expect(parsed.backupSchemaVersion).toBe(4);
     expect(parsed.payload.directionStates[0]).toMatchObject({
       scheduler: "legacy-stage",
       stage: 4,

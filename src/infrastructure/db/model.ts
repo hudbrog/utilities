@@ -1,4 +1,4 @@
-import type { ConceptDefinition, Direction, UnitDefinition } from "../../domain/curriculum/model";
+import type { ConceptDefinition, CurriculumBundle, Direction, UnitDefinition } from "../../domain/curriculum/model";
 import type { ExerciseType } from "../../domain/exercises/policy";
 import type { DirectionState } from "../../domain/scheduler/model";
 import type { FsrsRating, ReviewCompletionMode } from "../../domain/scheduler/model";
@@ -18,6 +18,17 @@ export type LearnerSettings = {
 
 export type InstalledUnit = UnitDefinition & {
   state: "inactive" | "introducing" | "fully_introduced";
+  curriculumId?: string;
+  curriculumTitle?: string;
+  available?: boolean;
+};
+
+export type ImportedCurriculum = {
+  id: string;
+  title: string;
+  bundle: CurriculumBundle;
+  conceptMap: Record<string, string | null>;
+  importedAt: number;
 };
 
 export type InstalledConcept = ConceptDefinition & { retired: boolean };
@@ -121,4 +132,7 @@ export type MutableBackupPayload = {
   dailyLedgers: DailyLedger[];
   curriculumReviewDecisions: CurriculumReviewDecision[];
   curriculumReviewUnits: CurriculumReviewUnit[];
+  importedCurricula: ImportedCurriculum[];
+  conceptDefinitions: InstalledConcept[];
+  definitionsIncluded: boolean;
 };

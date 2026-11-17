@@ -12,8 +12,7 @@ export class SessionStateError extends Error {}
 async function isEligibleConcept(db: EnglishSrsDatabase, conceptId: string): Promise<boolean> {
   const concept = await db.concepts.get(conceptId);
   if (!concept || concept.retired) return false;
-  const unit = await db.units.get(concept.unitId);
-  return Boolean(unit?.conceptIds.includes(conceptId));
+  return Boolean(await db.units.filter((unit) => unit.available !== false && unit.conceptIds.includes(conceptId)).first());
 }
 
 /** Recover directions whose only remaining work was in a discarded introduction queue. */
@@ -124,7 +123,8 @@ export async function presentQuestion(
         await db.conceptProgress.put({
           conceptId: question.conceptId,
           introducedAt: now,
-          introducedFromUnitId: progress?.introducedFromUnitId || concept.unitId,
+          introducedFromUnitId: progress?.introducedFromUnitId ||
+            (await db.units.filter((unit) => unit.state === "introducing" && unit.conceptIds.includes(concept.id)).first())?.id || concept.unitId,
           skipped: progress?.skipped ?? false,
           retired: progress?.retired ?? false,
         });
@@ -135,8 +135,8 @@ export async function presentQuestion(
           ledger.updatedAt = now;
           await db.dailyLedgers.put(ledger);
         }
-        const unit = await db.units.get(concept.unitId);
-        if (unit) {
+        const units = await db.units.filter((unit) => unit.available !== false && unit.conceptIds.includes(concept.id)).toArray();
+        for (const unit of units) {
           const progressRows = await db.conceptProgress.bulkGet(unit.conceptIds);
           if (progressRows.every((item) => item?.introducedAt != null)) {
             await db.units.put({ ...unit, state: "fully_introduced" });
