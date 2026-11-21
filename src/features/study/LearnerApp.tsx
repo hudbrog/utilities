@@ -62,6 +62,7 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
   const [audioError, setAudioError] = useState(false);
   const [promptAudioError, setPromptAudioError] = useState(false);
   const [promptPlaying, setPromptPlaying] = useState(false);
+  const [answerPlaying, setAnswerPlaying] = useState(false);
   const [lastAnswer, setLastAnswer] = useState<{ text: string; locale: SpeechLocale } | null>(null);
   const [sttAttempts, setSttAttempts] = useState<string[][]>([]);
   const [sttMessage, setSttMessage] = useState<string | null>(null);
@@ -152,11 +153,15 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
 
   const playAnswer = async (snapshot: StudySnapshot) => {
     if (!snapshot.current) return;
+    const questionId = snapshot.current.id;
     setAudioError(false);
+    setAnswerPlaying(true);
     try {
       await speak(answerText(snapshot), snapshot.current.direction === "en-ru" ? "ru-RU" : "en-US", { source: "answer" });
     } catch {
-      setAudioError(true);
+      if (currentQuestionId.current === questionId) setAudioError(true);
+    } finally {
+      setAnswerPlaying(false);
     }
   };
 
@@ -189,7 +194,7 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
   };
 
   const listen = async () => {
-    if (view.status !== "ready" || !view.snapshot.current || !view.snapshot.concept || promptPlaying || !beginAction()) return;
+    if (view.status !== "ready" || !view.snapshot.current || !view.snapshot.concept || promptPlaying || answerPlaying || !beginAction()) return;
     setSttMessage(null);
     try {
       const locale = view.snapshot.current.direction === "en-ru" ? "ru-RU" : "en-US";
@@ -307,7 +312,7 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
         {!revealed && speechQuestion ? (
           <div className="speech-answer">
             <button className={canStopListening ? "microphone-button microphone-button--active" : "microphone-button"}
-              disabled={(busy || promptPlaying) && !canStopListening} onClick={canStopListening ? recognition.stop : () => void listen()}
+              disabled={(busy || promptPlaying || answerPlaying) && !canStopListening} onClick={canStopListening ? recognition.stop : () => void listen()}
               aria-label={canStopListening ? "Закончить ответ" : "Ответить голосом"} aria-pressed={canStopListening}>
               <span aria-hidden="true">{canStopListening ? "■" : recognition.phase === "processing" ? "…" : "🎙"}</span>
               <span className="microphone-button__label">{canStopListening ? "Готово" : recognition.phase === "processing" ? "Жду ответ" : "Ответить"}</span>
