@@ -11,7 +11,7 @@ import { SpeechTestCard } from "../diagnostics/SpeechTestCard";
 vi.mock("../../application/studyService", () => ({
   loadStudy: vi.fn(), scoreAnswer: vi.fn(), goToNextQuestion: vi.fn(), distractorCurriculum: vi.fn(), introducedConceptIds: vi.fn(),
 }));
-vi.mock("../../infrastructure/speech/synthesis", () => ({ speak: vi.fn(async () => null) }));
+vi.mock("../../infrastructure/speech/synthesis", () => ({ speak: vi.fn(async () => null), prepareSpeechSynthesis: vi.fn(), cancelSpeech: vi.fn() }));
 
 const question = {
   id: "question", sessionId: "session", position: 0, conceptId: "cat", direction: "en-ru" as const,
