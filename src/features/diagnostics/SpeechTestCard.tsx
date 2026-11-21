@@ -77,7 +77,7 @@ export function SpeechTestCard({ locale, heading, recognitionPrompt, ttsText, on
   const testTts = async () => {
     setMessage("Говорю…");
     try {
-      const selectedVoice = await speak(ttsText, locale);
+      const selectedVoice = await speak(ttsText, locale, { source: "diagnostic" });
       const voiceLabel = selectedVoice
         ? `${selectedVoice.name} · ${selectedVoice.lang}${selectedVoice.localService ? " · локальный" : ""}`
         : "голос выбран браузером";
