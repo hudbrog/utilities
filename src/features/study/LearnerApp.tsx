@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { buildMultipleChoiceOptions, type MultipleChoiceOption } from "../../domain/exercises/distractors";
-import { cancelSpeech, prepareSpeechSynthesis, speak, type SpeechLocale } from "../../infrastructure/speech/synthesis";
+import { cancelSpeech, prepareSpeechSynthesis, speak } from "../../infrastructure/speech/synthesis";
+import type { SpeechLocale } from "../../infrastructure/speech/recognition";
 import { isAcceptedAnswer } from "../../domain/exercises/matching";
 import { RecognitionError } from "../../infrastructure/speech/recognition";
 import { StudyPrompt } from "./StudyPrompt";
