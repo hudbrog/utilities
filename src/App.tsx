@@ -18,6 +18,7 @@ import {
   hasLocalRecognitionApi,
 } from "./infrastructure/speech/recognition";
 import { registerPwa } from "./pwa";
+import { getSpeechPlaybackDiagnostics } from "./infrastructure/speech/synthesis";
 import { checkForPwaUpdate, type PwaState } from "./pwaUpdate";
 
 type ProbeSummary = { count: number; last?: PersistenceProbe };
@@ -40,6 +41,7 @@ function DiagnosticsApp({
   const [probe, setProbe] = useState<ProbeSummary>({ count: 0 });
   const [gateResults, setGateResults] = useState<GateResult[]>([]);
   const [speechDiagnostics, setSpeechDiagnostics] = useState<SpeechDiagnostic[]>([]);
+  const [ttsLog, setTtsLog] = useState(() => getSpeechPlaybackDiagnostics());
   const [storagePersistent, setStoragePersistent] = useState<boolean | null>(null);
   const [storageMessage, setStorageMessage] = useState<string | null>(null);
   const [dbError, setDbError] = useState<string | null>(null);
@@ -129,6 +131,7 @@ function DiagnosticsApp({
       persistenceProbe: probe,
       gateResults,
       speechDiagnostics,
+      ttsPlaybackDiagnostics: getSpeechPlaybackDiagnostics(),
     };
     const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -224,6 +227,23 @@ function DiagnosticsApp({
             ttsText="Daughter"
           />
         </div>
+      </section>
+
+      <section className="panel" aria-labelledby="tts-log-heading">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">История воспроизведения</p>
+            <h2 id="tts-log-heading">Диагностика TTS</h2>
+          </div>
+        </div>
+        <p className="section-copy">Сохраняются последние 40 попыток: запуск, завершение, ошибка и таймаут. Текст слов не сохраняется. История также включается в JSON-отчёт.</p>
+        <button className="button button--secondary" type="button"
+          onClick={() => setTtsLog(getSpeechPlaybackDiagnostics())}>
+          Обновить историю
+        </button>
+        <pre className="speech-result" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: "16rem", overflowY: "auto" }}>
+          {JSON.stringify(ttsLog.slice(-15), null, 2)}
+        </pre>
       </section>
 
       <section className="panel" aria-labelledby="persistence-heading">
