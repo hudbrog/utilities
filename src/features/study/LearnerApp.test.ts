@@ -171,3 +171,12 @@ test("diagnostics can stop recording and display the resulting alternatives", as
   expect(onDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ locale: "en-US", alternatives: [{ transcript: "cat", confidence: 0.9 }] }));
   expect(button().textContent).toContain("Проверить STT");
 });
+
+test("correct answers expose replay during feedback without delaying the transition", async () => {
+  await clickMic();
+  await finalResult("кот");
+  expect(container.textContent).toContain("Правильно!");
+  expect(container.textContent).toContain("Ещё раз");
+  await act(async () => { await vi.advanceTimersByTimeAsync(700); });
+  expect(goToNextQuestion).toHaveBeenCalledTimes(1);
+});
