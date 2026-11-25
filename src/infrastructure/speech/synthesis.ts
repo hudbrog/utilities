@@ -1,4 +1,5 @@
 import type { SpeechLocale } from "./recognition";
+import { findEnglishClip, playEnglishClip } from "./englishAudio";
 import { pickBestVoice } from "./voiceSelection";
 
 const MIN_COMPLETION_TIMEOUT_MS = 2_500;
@@ -96,11 +97,46 @@ export function prepareSpeechSynthesis() {
   if (voices.length) cachedVoices = voices;
 }
 
+function playRecording(request: SpeechRequest, clip: NonNullable<ReturnType<typeof findEnglishClip>>) {
+  const controller = new AbortController();
+  const voice = { name: "Kokoro · af_heart", lang: "en-US", localService: true };
+  request.record.voiceName = voice.name;
+  const finish = (kind: "ended" | "cancelled" | "error" | "timeout", error?: Error) => {
+    if (active !== request) return;
+    window.clearTimeout(timer);
+    active = null;
+    stopActive = null;
+    controller.abort();
+    recordEvent(request.record, kind, error?.message);
+    if (error) request.reject(error);
+    else request.resolve(kind === "ended" ? voice : null);
+    queueMicrotask(playNext);
+  };
+  const timer = window.setTimeout(() => finish("timeout", new Error("english-audio-timeout")), MAX_COMPLETION_TIMEOUT_MS);
+  stopActive = () => finish("cancelled");
+  recordEvent(request.record, "dispatched");
+  void playEnglishClip(clip, controller.signal, () => recordEvent(request.record, "started"))
+    .then(() => finish("ended"), (error: unknown) => finish("error", error instanceof Error ? error : new Error(String(error))));
+}
+
 function playNext() {
   if (active || recoveryTimer !== null || pending.length === 0) return;
   const request = pending.shift()!;
   active = request;
 
+  const clip = request.locale === "en-US" && findEnglishClip(request.text);
+  if (clip) {
+    playRecording(request, clip);
+    return;
+  }
+  if (!window.speechSynthesis) {
+    active = null;
+    const error = new Error("speech-synthesis-not-supported");
+    recordEvent(request.record, "error", error.message);
+    request.reject(error);
+    queueMicrotask(playNext);
+    return;
+  }
   const synthesis = window.speechSynthesis;
   prepareSpeechSynthesis();
   const voice = pickBestVoice(cachedVoices, request.locale);
@@ -152,7 +188,10 @@ function playNext() {
     }
   };
 
-  stopActive = () => finish("cancelled");
+  stopActive = () => {
+    finish("cancelled");
+    try { synthesis.cancel(); } catch { /* Already stopped. */ }
+  };
   utterance.onstart = () => recordEvent(request.record, "started");
   utterance.onend = () => finish("ended");
   utterance.onerror = (event) => finish("error", new Error(event.error || "speech-synthesis-error"));
@@ -174,8 +213,6 @@ function playNext() {
  * without waiting: a following audio question plays only after the previous answer finishes.
  */
 export function speak(text: string, locale: SpeechLocale, options: { source?: SpeechSource } = {}): Promise<SelectedVoice> {
-  if (!("speechSynthesis" in window)) return Promise.reject(new Error("speech-synthesis-not-supported"));
-  prepareSpeechSynthesis();
   const record: SpeechPlaybackDiagnostic = {
     id: Date.now() + "-" + (++sequence),
     requestedAt: Date.now(),
@@ -204,8 +241,5 @@ export function cancelSpeech() {
     recordEvent(request.record, "cancelled");
     request.resolve(null);
   }
-  if (active) {
-    stopActive?.();
-    try { window.speechSynthesis.cancel(); } catch { /* Already stopped. */ }
-  }
+  stopActive?.();
 }

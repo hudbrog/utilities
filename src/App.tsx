@@ -18,6 +18,7 @@ import {
   hasLocalRecognitionApi,
 } from "./infrastructure/speech/recognition";
 import { registerPwa } from "./pwa";
+import { englishPacks } from "./infrastructure/speech/englishAudio";
 import { getSpeechPlaybackDiagnostics } from "./infrastructure/speech/synthesis";
 import { checkForPwaUpdate, type PwaState } from "./pwaUpdate";
 
@@ -165,7 +166,7 @@ function DiagnosticsApp({
         </div>
         <div>
           <span className={`status-dot ${pwa.offlineReady ? "status-dot--online" : ""}`} />
-          {pwa.offlineReady ? "Кэш готов для офлайн" : "Кэш ещё готовится"}
+          {pwa.offlineReady ? "Готово без интернета, включая английское аудио" : "Готовим приложение и английское аудио"}
         </div>
       </section>
 
@@ -306,13 +307,24 @@ export default function App() {
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
-    void navigator.serviceWorker.ready.then(() => setPwa((current) => ({ ...current, offlineReady: true })));
+    let mounted = true;
+    const checkOfflineAudio = async () => {
+      try {
+        await navigator.serviceWorker.ready;
+        const cached = await Promise.all(englishPacks.map((url) => caches.match(url)));
+        if (mounted) setPwa((current) => ({ ...current, offlineReady: cached.every(Boolean) }));
+      } catch {
+        if (mounted) setPwa((current) => ({ ...current, offlineReady: false }));
+      }
+    };
+    void checkOfflineAudio();
     const updater = registerPwa({
-      onOfflineReady: () => setPwa((current) => ({ ...current, offlineReady: true })),
+      onOfflineReady: () => void checkOfflineAudio(),
       onNeedRefresh: () => setPwa((current) => ({ ...current, needRefresh: true })),
       onRegistrationError: (error) => setPwa((current) => ({ ...current, error: error.message })),
     });
     setApplyUpdate(() => updater);
+    return () => { mounted = false; };
   }, []);
 
   const openDiagnostics = () => { window.location.hash = "diagnostics"; };

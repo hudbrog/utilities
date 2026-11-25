@@ -422,6 +422,7 @@ export function ParentApp({
           </section>
           <section className="parent-panel">
             <p className="parent-eyebrow">Приложение</p><h2>Обновления</h2>
+            <p className="parent-muted" role="status">{pwa.offlineReady ? "Готово без интернета, включая английское аудио" : "Готовим приложение и английское аудио"}</p>
             <p className="parent-muted">Текущая версия: v{__APP_VERSION__}</p>
             <p className="parent-muted" aria-live="polite">{updateError ? `Не удалось проверить: ${updateError}` : updateStatus}</p>
             <div className="backup-actions">

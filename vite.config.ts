@@ -17,7 +17,8 @@ export default defineConfig({
       manifest: false,
       workbox: {
         cleanupOutdatedCaches: true,
-        globPatterns: ["**/*.{css,html,js,json,png,svg,webmanifest}"],
+        globPatterns: ["**/*.{css,html,js,json,png,svg,webmanifest}", "audio/en/*.pack"],
+        dontCacheBustURLsMatching: /(?:^assets\/|[a-f\d]{16}\.pack$)/,
         navigateFallback: "index.html",
       },
     }),
