@@ -13,8 +13,6 @@ function recoverFirstInstall(url: string, initial?: ServiceWorkerRegistration) {
   let ready = false;
   let delay = 2_000;
   let timer: number | undefined;
-  const seen = new WeakSet<ServiceWorkerRegistration>();
-
   function schedule() {
     if (ready || timer !== undefined || !navigator.onLine) return;
     timer = window.setTimeout(retry, delay);
@@ -26,30 +24,17 @@ function recoverFirstInstall(url: string, initial?: ServiceWorkerRegistration) {
     timer = undefined;
     if (ready || !navigator.onLine) return;
     try {
-      const registration = await navigator.serviceWorker.register(url);
-      observe(registration);
-      if (!registration.active && !registration.installing && !registration.waiting) await registration.update();
+      const registration = await navigator.serviceWorker.getRegistration(url);
+      if (!registration) await navigator.serviceWorker.register(url);
+      else if (!registration.active && !registration.installing && !registration.waiting) await registration.update();
     } catch {
+      // Keep the partial precache and retry once the connection is usable.
+    } finally {
       schedule();
     }
   }
 
-  function observe(registration: ServiceWorkerRegistration) {
-    if (seen.has(registration)) return;
-    seen.add(registration);
-    const watchWorker = () => {
-      const worker = registration.installing;
-      if (!worker) return;
-      worker.addEventListener("statechange", () => {
-        if (worker.state === "redundant" && !registration.active) schedule();
-      });
-    };
-    registration.addEventListener("updatefound", watchWorker);
-    watchWorker();
-    if (!registration.active && !registration.installing && !registration.waiting) schedule();
-  }
-
-  observe(initial);
+  schedule();
   window.addEventListener("online", retry);
   void navigator.serviceWorker.ready.then(() => {
     ready = true;
