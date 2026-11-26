@@ -171,6 +171,9 @@ export async function commitAnswer(db: EnglishSrsDatabase, input: CommitAnswerIn
     async () => {
       const question = await db.sessionQuestions.get(input.attempt.questionId);
       if (!question || question.status !== "current") throw new QuestionAlreadyAnsweredError(input.attempt.questionId);
+      if (question.exerciseType !== input.attempt.exerciseType) {
+        throw new SessionStateError("Способ ответа изменился. Откройте вопрос ещё раз.");
+      }
       if (!await isEligibleConcept(db, question.conceptId)) throw new SessionStateError("Word is no longer approved for study");
       if (await db.attempts.where("questionId").equals(input.attempt.questionId).first()) {
         throw new QuestionAlreadyAnsweredError(input.attempt.questionId);

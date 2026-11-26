@@ -28,5 +28,12 @@ export function useSpeechRecognition() {
   }, []);
 
   const stop = useCallback(() => active.current?.stop(), []);
-  return { phase, listen, stop };
+  const cancel = useCallback(() => {
+    if (!active.current) return false;
+    active.current.cancel();
+    active.current = null;
+    setPhase("idle");
+    return true;
+  }, []);
+  return { phase, listen, stop, cancel };
 }

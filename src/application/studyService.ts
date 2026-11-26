@@ -133,6 +133,18 @@ function historicalRating(attempt: Attempt) {
   );
 }
 
+/** Reveal choices on this question without recording an answer or advancing the session. */
+export async function requestWordChoices(questionId: string): Promise<PersistedSessionQuestion> {
+  return db.transaction("rw", db.sessionQuestions, async () => {
+    const question = await db.sessionQuestions.get(questionId);
+    if (!question || question.status !== "current") throw new Error("Вопрос уже отвечен");
+    if (!question.exerciseType.startsWith("stt_")) return question;
+    const exerciseType = question.exerciseType === "stt_audio" ? "mc_audio" : "mc_text";
+    await db.sessionQuestions.update(questionId, { exerciseType });
+    return { ...question, exerciseType };
+  });
+}
+
 export async function scoreAnswer(
   snapshot: StudySnapshot,
   correct: boolean,
