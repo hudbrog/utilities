@@ -18,6 +18,7 @@ import {
   type ParentWordRow,
 } from "../../application/parentService";
 import type { PwaState, PwaUpdateCheckResult } from "../../pwaUpdate";
+import { cancelSpeech, speak } from "../../infrastructure/speech/synthesis";
 import { CurriculumImport } from "./CurriculumImport";
 
 type Tab = "today" | "course" | "words" | "settings";
@@ -76,6 +77,25 @@ function ReviewWordEditor({ word, close, save }: { word: ReviewWord; close: () =
           void save({ ru: ru.trim(), acceptedEn: splitAnswers(acceptedEn), acceptedRu: splitAnswers(acceptedRu) }).finally(() => setBusy(false));
         }}>Сохранить и одобрить</button>
       </section>
+    </div>
+  );
+}
+
+function WordAudioButton({ english, play }: { english: string; play: (english: string) => void }) {
+  const label = `Послушать: ${english}`;
+  return <button type="button" className="word-audio" aria-label={label} title={label}
+    onClick={() => play(english)}><span aria-hidden="true">🔊</span></button>;
+}
+
+function WordRow({ item, progress, open, play }: {
+  item: ParentWordRow; progress: string; open: (id: string) => void; play: (english: string) => void;
+}) {
+  return (
+    <div className="word-row">
+      <button type="button" className="word-summary" onClick={() => open(item.concept.id)}>
+        <strong lang="en">{item.concept.en}</strong><span>{item.concept.ru}</span><small>{progress}</small>
+      </button>
+      <WordAudioButton english={item.concept.en} play={play} />
     </div>
   );
 }
@@ -175,6 +195,15 @@ export function ParentApp({
   };
 
   useEffect(() => { void refresh(); }, []);
+
+  useEffect(() => cancelSpeech, [tab]);
+
+  const playWord = (english: string) => {
+    cancelSpeech();
+    setError(null);
+    void speak(english, "en-US", { source: "replay" })
+      .catch(() => setError(`Не удалось воспроизвести слово «${english}».`));
+  };
 
   const difficult = useMemo(() => snapshot?.words.filter((word) =>
     Object.values(word.states).some((state) => state && (state.lifetimeFailureCount > 0 || state.sttProblematic)),
@@ -301,10 +330,8 @@ export function ParentApp({
             <div className="parent-section-heading"><div><p className="parent-eyebrow">Нужно внимание</p><h2>Сложные слова</h2></div><span>{difficult.length}</span></div>
             {difficult.length === 0 ? <p className="parent-muted">Пока ничего подозрительного.</p> : (
               <div className="word-list">{difficult.slice(0, 8).map((item) => (
-                <button key={item.concept.id} onClick={() => setSelectedWord(item.concept.id)}>
-                  <strong>{item.concept.en}</strong><span>{item.concept.ru}</span>
-                  <small>{Object.values(item.states).reduce((sum, state) => sum + (state?.lifetimeFailureCount ?? 0), 0)} ошибок</small>
-                </button>
+                <WordRow key={item.concept.id} item={item} open={setSelectedWord} play={playWord}
+                  progress={`${Object.values(item.states).reduce((sum, state) => sum + (state?.lifetimeFailureCount ?? 0), 0)} ошибок`} />
               ))}</div>
             )}
           </section>
@@ -334,7 +361,8 @@ export function ParentApp({
                 </div>
                 {expandedImportedUnit === unit.id && <div className="word-list import-unit-words">{unit.conceptIds.map((id) => {
                   const item = snapshot.words.find((candidate) => candidate.concept.id === id);
-                  return item && <button key={id} onClick={() => setSelectedWord(id)}><strong>{item.concept.en}</strong><span>{item.concept.ru}</span><small>{item.progressIntroduced ? "уже в занятиях" : "новое"}</small></button>;
+                  return item && <WordRow key={id} item={item} open={setSelectedWord} play={playWord}
+                    progress={item.progressIntroduced ? "уже в занятиях" : "новое"} />;
                 })}</div>}
               </article>;
             })}</div>
@@ -359,6 +387,7 @@ export function ParentApp({
                   {(item.acceptedRu.length > 0 || item.acceptedEn.length > 0) && <p className="review-aliases">Варианты: {[...item.acceptedRu, ...item.acceptedEn].join(", ")}</p>}
                   {item.proposal.reviewNotes && <p className="review-note">{item.proposal.reviewNotes}</p>}
                   <div className="review-word-actions">
+                    <WordAudioButton english={item.proposal.en} play={playWord} />
                     {!(["approved", "edited", "excluded"] as string[]).includes(item.status) && <button className="text-button" onClick={() => void mutateReview(() => reviewConcept(item.proposal.conceptId, "approved"))}>Принять</button>}
                     <button className="text-button" onClick={() => setEditingReviewWord(item.proposal.conceptId)}>Исправить</button>
                     {item.status !== "excluded" && <button className="text-button review-exclude" onClick={() => void mutateReview(() => reviewConcept(item.proposal.conceptId, "excluded"))}>Исключить</button>}
@@ -396,10 +425,8 @@ export function ParentApp({
         <section className="parent-panel">
           <p className="parent-eyebrow">Словарь</p><h2>Прогресс по словам</h2>
           <div className="word-list word-list--all">{snapshot.words.map((item) => (
-            <button key={item.concept.id} onClick={() => setSelectedWord(item.concept.id)}>
-              <strong>{item.concept.en}</strong><span>{item.concept.ru}</span>
-              <small>{item.progressIntroduced ? `уровни ${item.states["en-ru"]?.stage ?? 0} / ${item.states["ru-en"]?.stage ?? 0}` : "ещё не добавлено"}</small>
-            </button>
+            <WordRow key={item.concept.id} item={item} open={setSelectedWord} play={playWord}
+              progress={item.progressIntroduced ? `уровни ${item.states["en-ru"]?.stage ?? 0} / ${item.states["ru-en"]?.stage ?? 0}` : "ещё не добавлено"} />
           ))}</div>
         </section>
       )}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 
 import { buildMultipleChoiceOptions, type MultipleChoiceOption } from "../../domain/exercises/distractors";
 import { cancelSpeech, prepareSpeechSynthesis, speak } from "../../infrastructure/speech/synthesis";
@@ -12,6 +12,7 @@ import {
   distractorCurriculum,
   introducedConceptIds,
   loadStudy,
+  requestWordChoices,
   scoreAnswer,
   type StudySnapshot,
 } from "../../application/studyService";
@@ -67,6 +68,7 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
   const [sttAttempts, setSttAttempts] = useState<string[][]>([]);
   const [sttMessage, setSttMessage] = useState<string | null>(null);
   const [mcFallback, setMcFallback] = useState(false);
+  const [requestingChoices, setRequestingChoices] = useState(false);
   const recognition = useSpeechRecognition();
   const actionInFlight = useRef(false);
   const inputLockedUntil = useRef(0);
@@ -135,15 +137,14 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
       .catch((error: unknown) => setView({ status: "error", message: messageFor(error) }));
   }, [replaceSnapshot]);
 
+  const audioQuestionId = view.status === "ready" && view.snapshot.current?.status === "current" &&
+    view.snapshot.current.exerciseType.endsWith("audio") ? view.snapshot.current.id : null;
+  const playCurrentPrompt = useEffectEvent(() => {
+    if (view.status === "ready") void playPrompt(view.snapshot);
+  });
   useEffect(() => {
-    if (
-      view.status === "ready" &&
-      view.snapshot.current?.status === "current" &&
-      view.snapshot.current.exerciseType.endsWith("audio")
-    ) {
-      void playPrompt(view.snapshot);
-    }
-  }, [view, playPrompt]);
+    if (audioQuestionId) playCurrentPrompt();
+  }, [audioQuestionId]);
 
   const progress = useMemo(() => {
     if (view.status !== "ready") return { completed: 0, total: 0, mistakes: 0 };
@@ -184,11 +185,35 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
     await replaceSnapshot(await goToNextQuestion(scored));
   };
 
+  const showWordChoices = async () => {
+    if (view.status !== "ready" || !view.snapshot.current || requestingChoices ||
+        performance.now() < inputLockedUntil.current) return;
+    if (actionInFlight.current && !recognition.cancel()) return;
+    const questionId = view.snapshot.current.id;
+    setRequestingChoices(true);
+    try {
+      const question = await requestWordChoices(questionId);
+      inputLockedUntil.current = performance.now() + TRANSITION_DEBOUNCE_MS;
+      setView((current) => {
+        if (current.status !== "ready" || current.snapshot.current?.id !== questionId) return current;
+        return { ...current, snapshot: { ...current.snapshot, current: question,
+          questions: current.snapshot.questions.map((item) => item.id === questionId ? question : item) } };
+      });
+    } catch (error) {
+      setSttMessage(messageFor(error));
+    } finally {
+      setRequestingChoices(false);
+    }
+  };
+
   const choose = async (option: MultipleChoiceOption) => {
     if (view.status !== "ready" || view.snapshot.current?.status !== "current" || !beginAction()) return;
     setSelectedId(option.conceptId);
     try {
-      await showScoredAnswer(await scoreAnswer(view.snapshot, option.correct, { completionMode: "multiple-choice" }));
+      await showScoredAnswer(await scoreAnswer(view.snapshot, option.correct, {
+        completionMode: "multiple-choice",
+        ...(sttAttempts.length ? { sttAttemptCount: sttAttempts.length, sttTranscripts: sttAttempts } : {}),
+      }));
     } catch (error) {
       setView({ status: "error", message: messageFor(error) });
     } finally {
@@ -315,14 +340,17 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
         {!revealed && speechQuestion ? (
           <div className="speech-answer">
             <button className={canStopListening ? "microphone-button microphone-button--active" : "microphone-button"}
-              disabled={(busy || promptPlaying || answerPlaying) && !canStopListening} onClick={canStopListening ? recognition.stop : () => void listen()}
+              disabled={requestingChoices || ((busy || promptPlaying || answerPlaying) && !canStopListening)} onClick={canStopListening ? recognition.stop : () => void listen()}
               aria-label={canStopListening ? "Закончить ответ" : "Ответить голосом"} aria-pressed={canStopListening}>
               <span aria-hidden="true">{canStopListening ? "■" : recognition.phase === "processing" ? "…" : "🎙"}</span>
               <span className="microphone-button__label">{canStopListening ? "Готово" : recognition.phase === "processing" ? "Жду ответ" : "Ответить"}</span>
             </button>
             <p aria-live="polite">{recognitionMessage}</p>
             <small>Попытка {Math.min(sttAttempts.length + 1, 3)} из 3</small>
-            {sttAttempts.length > 0 && <button className="text-button" disabled={busy} onClick={() => setMcFallback(true)}>Выбрать ответ</button>}
+            <button type="button" className="text-button" disabled={requestingChoices || (busy && recognition.phase === "idle")}
+              onClick={() => void showWordChoices()}>Не помню</button>
+            {sttAttempts.length > 0 && <button className="text-button" disabled={busy || requestingChoices}
+              onClick={() => setMcFallback(true)}>Выбрать ответ</button>}
           </div>
         ) : !revealed ? (
           <div className="choice-list">

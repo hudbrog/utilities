@@ -3,13 +3,13 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { concepts, units } from "../../domain/testFixtures";
-import { distractorCurriculum, goToNextQuestion, introducedConceptIds, loadStudy, scoreAnswer, type StudySnapshot } from "../../application/studyService";
+import { distractorCurriculum, goToNextQuestion, introducedConceptIds, loadStudy, requestWordChoices, scoreAnswer, type StudySnapshot } from "../../application/studyService";
 import { FakeRecognition, recognitionEvent } from "../../test/speechRecognition";
 import { LearnerApp } from "./LearnerApp";
 import { SpeechTestCard } from "../diagnostics/SpeechTestCard";
 
 vi.mock("../../application/studyService", () => ({
-  loadStudy: vi.fn(), scoreAnswer: vi.fn(), goToNextQuestion: vi.fn(), distractorCurriculum: vi.fn(), introducedConceptIds: vi.fn(),
+  loadStudy: vi.fn(), requestWordChoices: vi.fn(), scoreAnswer: vi.fn(), goToNextQuestion: vi.fn(), distractorCurriculum: vi.fn(), introducedConceptIds: vi.fn(),
 }));
 vi.mock("../../infrastructure/speech/synthesis", () => ({ speak: vi.fn(async () => null), prepareSpeechSynthesis: vi.fn(), cancelSpeech: vi.fn() }));
 
@@ -29,6 +29,7 @@ beforeEach(async () => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.stubGlobal("SpeechRecognition", FakeRecognition);
   FakeRecognition.reset();
+  vi.mocked(requestWordChoices).mockResolvedValue({ ...question, exerciseType: "mc_text" });
   vi.mocked(loadStudy).mockResolvedValue(structuredClone(snapshot));
   vi.mocked(distractorCurriculum).mockResolvedValue({ concepts, units });
   vi.mocked(introducedConceptIds).mockResolvedValue(new Set(["cat"]));
@@ -129,6 +130,27 @@ test.each([false, true])("leaving the learner ignores any late answer, already s
   expect(goToNextQuestion).not.toHaveBeenCalled();
 });
 
+test.each([false, true])("Не помню opens choices without scoring, with microphone active: %s", async (listening) => {
+  if (listening) await clickMic();
+  const lateResult = listening ? FakeRecognition.latest.onresult : null;
+  const button = [...container.querySelectorAll("button")].find((element) => element.textContent === "Не помню")!;
+  await act(async () => { button.click(); });
+  expect(requestWordChoices).toHaveBeenCalledExactlyOnceWith(question.id);
+  if (listening) {
+    expect(FakeRecognition.latest.abort).toHaveBeenCalledTimes(1);
+    await act(async () => { lateResult?.(recognitionEvent(["кот"])); });
+  }
+  expect(scoreAnswer).not.toHaveBeenCalled();
+  expect(container.querySelectorAll(".choice")).toHaveLength(4);
+  const correct = [...container.querySelectorAll<HTMLButtonElement>(".choice")].find((option) => option.textContent === "кот")!;
+  await act(async () => { correct.click(); });
+  expect(scoreAnswer).not.toHaveBeenCalled();
+  await act(async () => { await vi.advanceTimersByTimeAsync(500); correct.click(); });
+  expect(scoreAnswer).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+    current: expect.objectContaining({ exerciseType: "mc_text" }),
+  }), true, { completionMode: "multiple-choice" });
+});
+
 test("microphone permission failures still offer multiple choice without scoring", async () => {
   await clickMic();
   await act(async () => { FakeRecognition.latest.error("not-allowed"); });
@@ -139,7 +161,10 @@ test("microphone permission failures still offer multiple choice without scoring
 test("manual stopping preserves the three-mismatch policy", async () => {
   for (let attempt = 1; attempt <= 3; attempt++) {
     await clickMic();
-    if (attempt > 1) expect(container.querySelector<HTMLButtonElement>(".speech-answer .text-button")?.disabled).toBe(true);
+    if (attempt > 1) {
+      const fallback = [...container.querySelectorAll("button")].find((button) => button.textContent === "Выбрать ответ");
+      expect(fallback?.disabled).toBe(true);
+    }
     await clickMic();
     await finalResult("не тот ответ");
     if (attempt < 3) expect(scoreAnswer).not.toHaveBeenCalled();

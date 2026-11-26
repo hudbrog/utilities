@@ -1099,7 +1099,37 @@ footer a {
   color: var(--red);
 }
 
-.word-list button {
+.word-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  background: #f5f7f5;
+  border-radius: 14px;
+  padding-right: 4px;
+}
+
+.word-summary > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.word-audio {
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.word-audio:hover,
+.word-audio:focus-visible {
+  background: #eaf3f0;
+}
+
+.word-summary {
   display: grid;
   grid-template-columns: 1fr 1fr auto;
   gap: 14px;
@@ -1114,16 +1144,16 @@ footer a {
   cursor: pointer;
 }
 
-.word-list button:hover {
+.word-summary:hover {
   background: #eaf3f0;
 }
 
-.word-list button span,
-.word-list button small {
+.word-summary span,
+.word-summary small {
   color: var(--muted);
 }
 
-.word-list button small {
+.word-summary small {
   text-align: right;
 }
 
@@ -1381,11 +1411,11 @@ footer a {
     min-width: max-content;
   }
 
-  .word-list button {
+  .word-summary {
     grid-template-columns: 1fr 1fr;
   }
 
-  .word-list button small {
+  .word-summary small {
     grid-column: 1 / -1;
     text-align: left;
   }
