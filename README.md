@@ -76,3 +76,15 @@ See [`docs/stage-0/import-shape-report.md`](docs/stage-0/import-shape-report.md)
 ## Deployment
 
 Pushes to `main` run the pinned GitHub Pages workflow. It installs from the lockfile, type-checks, tests, builds, verifies the `/utilities/` URLs, and deploys only `dist/`.
+
+### English pronunciation
+
+The Duolingo and Academy Stars vocabularies include prerecorded American English
+from Kokoro v1.0 (`af_heart`). The PWA downloads the complete set on its first
+online installation. In the parent settings, **Готово без интернета** means
+the service worker is ready and all English audio packs are cached. The same
+clips play for listening prompts, correct answers and replay. Russian and
+unpackaged custom vocabulary use the existing system voice.
+
+The generated assets are checked in. A normal build needs only the usual JS
+dependencies. To add or correct a recording, see [the generator](tools/pronunciation/README.md).

@@ -27,3 +27,10 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## English pronunciation audio
+
+The English clips were generated with [Kokoro-82M v1.0](https://huggingface.co/hexgrad/Kokoro-82M),
+voice `af_heart`, using [Misaki](https://github.com/hexgrad/misaki) for American
+English pronunciations and [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx)
+for offline synthesis. The app ships the resulting recordings.

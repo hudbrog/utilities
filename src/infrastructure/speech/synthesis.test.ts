@@ -1,3 +1,4 @@
+import { playEnglishClip } from "./englishAudio";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -7,6 +8,11 @@ import {
   speak,
   speechCompletionTimeoutMs,
 } from "./synthesis";
+
+vi.mock("./englishAudio", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./englishAudio")>()),
+  playEnglishClip: vi.fn(),
+}));
 
 class FakeUtterance {
   lang = "";
@@ -33,7 +39,7 @@ describe("speech synthesis", () => {
     paused: false,
     resume: vi.fn(),
     addEventListener: vi.fn(),
-    getVoices: vi.fn(() => [voice]),
+    getVoices: vi.fn(() => [voice, { ...voice, lang: "ru-RU" }]),
     speak: vi.fn(),
   };
   const utterances: FakeUtterance[] = [];
@@ -59,7 +65,7 @@ describe("speech synthesis", () => {
   });
 
   it("does not cancel a speech request before starting it", async () => {
-    const result = speak("cat", "en-US");
+    const result = speak("кошка", "ru-RU");
     expect(cancel).not.toHaveBeenCalled();
     expect(utterances).toHaveLength(1);
     utterances[0].onstart?.();
@@ -83,8 +89,8 @@ describe("speech synthesis", () => {
   });
 
   it("times out a stuck utterance, recovers, and then plays the queued word", async () => {
-    const first = speak("stuck", "en-US");
-    const second = speak("next", "en-US");
+    const first = speak("stuck", "ru-RU");
+    const second = speak("next", "ru-RU");
     const rejection = expect(first).rejects.toThrow("speech-synthesis-timeout");
     await vi.advanceTimersByTimeAsync(speechCompletionTimeoutMs("stuck"));
     await rejection;
@@ -104,6 +110,43 @@ describe("speech synthesis", () => {
     await expect(second).resolves.toBeNull();
     expect(cancel).toHaveBeenCalledTimes(1);
     expect(utterances).toHaveLength(1);
+  });
+
+  it("plays a packaged English word without native speech and queues the next Russian answer", async () => {
+    let end!: () => void;
+    vi.mocked(playEnglishClip).mockImplementationOnce(async (_clip, _signal, started) => {
+      started();
+      await new Promise<void>((resolve) => { end = resolve; });
+    });
+    const english = speak(" Daughter ", "en-US", { source: "prompt" });
+    const russian = speak("дочь", "ru-RU", { source: "answer" });
+    expect(utterances).toHaveLength(0);
+    end();
+    await expect(english).resolves.toMatchObject({ name: "Kokoro · af_heart" });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(utterances[0].text).toBe("дочь");
+    utterances[0].onend?.();
+    await russian;
+  });
+
+  it("can cancel a recording during loading and resolve queued replays", async () => {
+    let signal!: AbortSignal;
+    vi.mocked(playEnglishClip).mockImplementationOnce(async (_clip, abort) => {
+      signal = abort;
+      await new Promise<void>((resolve) => abort.addEventListener("abort", () => resolve()));
+    });
+    const first = speak("read", "en-US");
+    const second = speak("wind", "en-US", { source: "replay" });
+    cancelSpeech();
+    expect(signal.aborted).toBe(true);
+    await expect(Promise.all([first, second])).resolves.toEqual([null, null]);
+    expect(utterances).toHaveLength(0);
+  });
+
+  it("reports an unavailable recording without silently switching voices", async () => {
+    vi.mocked(playEnglishClip).mockRejectedValueOnce(new Error("english-audio-pack-unavailable"));
+    await expect(speak("cat", "en-US")).rejects.toThrow("english-audio-pack-unavailable");
+    expect(synth.speak).not.toHaveBeenCalled();
   });
 
   it("records browser lifecycle events and never stores spoken text", async () => {

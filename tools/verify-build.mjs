@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createHash } from "node:crypto";
 import { access, readFile } from "node:fs/promises";
 
 const requiredFiles = [
@@ -57,3 +58,27 @@ const escapedUrls = rootRelativeUrls.filter((url) => !url.startsWith("/utilities
 if (escapedUrls.length > 0) throw new Error(`Build contains URLs outside /utilities/: ${escapedUrls.join(", ")}`);
 
 console.log(`Verified ${requiredFiles.length} required files, ${rootRelativeUrls.length} root-relative URLs, and ${proposalIds.size} curriculum proposals.`);
+
+const audio = JSON.parse(await readFile("src/generated/englishAudio.json", "utf8"));
+const workbook = JSON.parse(await readFile("dist/academy-stars-1.json", "utf8"));
+const worker = await readFile("dist/sw.js", "utf8");
+const vocabulary = new Set([...reviewPackage.proposals, ...workbook.concepts].map(({ en }) => en.trim().toLowerCase()));
+for (const word of vocabulary) {
+  if (!Object.hasOwn(audio.clips, word)) throw new Error(`Missing English recording: ${word}`);
+}
+const sizes = await Promise.all(audio.packs.map(async (name) => {
+  const path = "audio/en/" + name;
+  const bytes = await readFile("dist/" + path);
+  const hash = createHash("sha256").update(bytes).digest("hex").slice(0, 16);
+  if (!name.endsWith("-" + hash + ".pack") || !worker.includes(path)) {
+    throw new Error("Invalid or unprecached pronunciation pack: " + path);
+  }
+  return bytes.length;
+}));
+for (const [word, [pack, offset, length]] of Object.entries(audio.clips)) {
+  if (!Number.isInteger(pack) || sizes[pack] == null || !Number.isInteger(offset) || offset < 0 ||
+      !Number.isInteger(length) || length <= 0 || offset + length > sizes[pack]) {
+    throw new Error("Invalid clip bounds: " + word);
+  }
+}
+console.log(`Verified ${vocabulary.size} English recordings in ${sizes.length} precached packs.`);

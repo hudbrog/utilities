@@ -60,7 +60,7 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
   const [busy, setBusy] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [audioError, setAudioError] = useState(false);
-  const [promptAudioError, setPromptAudioError] = useState(false);
+  const [promptAudioError, setPromptAudioError] = useState<"tap" | "failed" | null>(null);
   const [promptPlaying, setPromptPlaying] = useState(false);
   const [answerPlaying, setAnswerPlaying] = useState(false);
   const [lastAnswer, setLastAnswer] = useState<{ text: string; locale: SpeechLocale } | null>(null);
@@ -76,7 +76,7 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
   const replaceSnapshot = useCallback(async (snapshot: StudySnapshot) => {
     setSelectedId(null);
     setAudioError(false);
-    setPromptAudioError(false);
+    setPromptAudioError(null);
     setPromptPlaying(false);
     promptPlaybackId.current += 1;
     currentQuestionId.current = snapshot.current?.id;
@@ -105,10 +105,13 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
     if (!question) return;
     const playbackId = ++promptPlaybackId.current;
     setPromptPlaying(true);
+    setPromptAudioError(null);
     try {
       await speak(promptText(snapshot), question.direction === "en-ru" ? "en-US" : "ru-RU", { source: "prompt" });
-    } catch {
-      if (currentQuestionId.current === question.id && promptPlaybackId.current === playbackId) setPromptAudioError(true);
+    } catch (error) {
+      if (currentQuestionId.current === question.id && promptPlaybackId.current === playbackId) {
+        setPromptAudioError(messageFor(error) === "english-audio-needs-tap" ? "tap" : "failed");
+      }
     } finally {
       if (currentQuestionId.current === question.id && promptPlaybackId.current === playbackId) setPromptPlaying(false);
     }
@@ -301,7 +304,7 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
         </header>
 
         <StudyPrompt text={promptText(snapshot)} direction={snapshot.current!.direction}
-          audio={Boolean(audioPrompt)} audioFailed={promptAudioError} onReplay={() => void playPrompt(snapshot)} />
+          audio={Boolean(audioPrompt)} audioFailed={promptAudioError === "failed"} needsTap={promptAudioError === "tap"} onReplay={() => void playPrompt(snapshot)} />
         {!revealed && lastAnswer && (
           <button className="replay-button" type="button"
             onClick={() => void speak(lastAnswer.text, lastAnswer.locale, { source: "replay" }).catch(() => setAudioError(true))}>

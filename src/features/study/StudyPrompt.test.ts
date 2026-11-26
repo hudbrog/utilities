@@ -18,3 +18,11 @@ test("working audio keeps the listening prompt hidden", () => {
   }));
   expect(html).not.toContain("<h1");
 });
+
+test("an initial autoplay restriction lets the learner tap without revealing the word", () => {
+  const html = renderToStaticMarkup(createElement(StudyPrompt, {
+    text: "live", direction: "en-ru", audio: true, audioFailed: false, needsTap: true, onReplay: () => {},
+  }));
+  expect(html).toContain("Послушать слово");
+  expect(html).not.toContain("<h1");
+});
