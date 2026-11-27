@@ -16,6 +16,8 @@ export default defineConfig({
       injectRegister: false,
       manifest: false,
       workbox: {
+        // Use the precache on the first open page as soon as the initial install completes.
+        clientsClaim: true,
         cleanupOutdatedCaches: true,
         globPatterns: ["**/*.{css,html,js,json,png,svg,webmanifest}", "audio/en/*.pack"],
         dontCacheBustURLsMatching: /(?:^assets\/|[a-f\d]{16}\.pack$)/,

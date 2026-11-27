@@ -28,6 +28,7 @@ import type {
   InstalledUnit,
   LearnerSettings,
   ImportedCurriculum,
+  PronunciationFlag,
 } from "../infrastructure/db/model";
 import type { DirectionState } from "../domain/scheduler/model";
 import { resetSttProblemHistory } from "../domain/scheduler/scheduler";
@@ -47,6 +48,7 @@ export type ParentSnapshot = {
   settings: LearnerSettings;
   units: InstalledUnit[];
   words: ParentWordRow[];
+  pronunciationFlags: PronunciationFlag[];
   today: DailyLedger | null;
   dueCount: number;
   newAvailableToday: number;
@@ -61,7 +63,7 @@ async function initialize(now: number): Promise<void> {
 
 export async function loadParentSnapshot(now = Date.now()): Promise<ParentSnapshot> {
   await initialize(now);
-  const [settings, units, concepts, progress, states, attempts, overrides, today, reviewUnits] = await Promise.all([
+  const [settings, units, concepts, progress, states, attempts, overrides, today, reviewUnits, pronunciationFlags] = await Promise.all([
     db.settings.get("settings"),
     db.units.orderBy("number").toArray(),
     db.concepts.orderBy("[unitId+order]").toArray(),
@@ -71,6 +73,7 @@ export async function loadParentSnapshot(now = Date.now()): Promise<ParentSnapsh
     db.answerOverrides.toArray(),
     db.dailyLedgers.get(calendar.dateKey(now)),
     loadReviewUnits(db),
+    db.pronunciationFlags.orderBy("flaggedAt").reverse().toArray(),
   ]);
   const progressById = new Map(progress.map((item) => [item.conceptId, item]));
   const overrideById = new Map(overrides.map((item) => [item.conceptId, item]));
@@ -104,6 +107,7 @@ export async function loadParentSnapshot(now = Date.now()): Promise<ParentSnapsh
     settings: normalizedSettings,
     units,
     words,
+    pronunciationFlags,
     today: today ?? null,
     dueCount,
     newAvailableToday: normalizedSettings.suppressNewOnBacklog && dueCount > normalizedSettings.backlogThreshold ? 0 : Math.min(remainingInActiveUnits, quotaRemaining),
@@ -154,6 +158,10 @@ export async function saveAnswerOverride(
   now = Date.now(),
 ): Promise<void> {
   await db.answerOverrides.put({ conceptId, acceptedEn, acceptedRu, updatedAt: now });
+}
+
+export function clearPronunciationFlag(key: string): Promise<void> {
+  return db.pronunciationFlags.delete(key);
 }
 
 export async function resetWordStt(conceptId: string, now = Date.now()): Promise<void> {

@@ -68,6 +68,12 @@ export type Attempt = {
   questionId: string;
 };
 
+export type PronunciationFlag = {
+  key: string;
+  english: string;
+  flaggedAt: number;
+};
+
 export type AnswerOverride = {
   conceptId: string;
   acceptedEn: string[];
@@ -135,4 +141,5 @@ export type MutableBackupPayload = {
   importedCurricula: ImportedCurriculum[];
   conceptDefinitions: InstalledConcept[];
   definitionsIncluded: boolean;
+  pronunciationFlags: PronunciationFlag[];
 };

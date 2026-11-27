@@ -85,6 +85,9 @@ const versionThreePayloadSchema = versionTwoPayloadSchema.extend({
 
 const payloadSchema = versionThreePayloadSchema.extend({
   definitionsIncluded: z.boolean(),
+  pronunciationFlags: z.array(z.object({
+    key: z.string().min(1), english: z.string().min(1), flaggedAt: z.number(),
+  }).refine((flag) => flag.key === flag.english.trim().toLowerCase())).default([]),
   conceptDefinitions: z.array(conceptDefinitionSchema.extend({ retired: z.boolean() })),
   importedCurricula: z.array(z.object({
     id: z.string().min(1), title: z.string().min(1), bundle: curriculumBundleSchema,
@@ -125,21 +128,21 @@ export async function createBackup(
   appVersion: string,
   exportedAt = new Date().toISOString(),
 ): Promise<BackupEnvelope> {
-  const [settings, unitStates, conceptProgress, directionStates, attempts, answerOverrides, dailyLedgers, curriculumReviewDecisions, curriculumReviewUnits, curriculumMeta, importedCurricula, conceptDefinitions] =
+  const [settings, unitStates, conceptProgress, directionStates, attempts, answerOverrides, dailyLedgers, curriculumReviewDecisions, curriculumReviewUnits, curriculumMeta, importedCurricula, conceptDefinitions, pronunciationFlags] =
     await db.transaction(
       "r",
-      [db.settings, db.units, db.conceptProgress, db.directionStates, db.attempts, db.answerOverrides, db.dailyLedgers, db.curriculumReviewDecisions, db.curriculumReviewUnits, db.appMeta, db.importedCurricula, db.concepts],
+      [db.settings, db.units, db.conceptProgress, db.directionStates, db.attempts, db.answerOverrides, db.dailyLedgers, db.curriculumReviewDecisions, db.curriculumReviewUnits, db.appMeta, db.importedCurricula, db.concepts, db.pronunciationFlags],
       () => Promise.all([
         db.settings.toArray(), db.units.toArray(), db.conceptProgress.toArray(), db.directionStates.toArray(),
         db.attempts.toArray(), db.answerOverrides.toArray(), db.dailyLedgers.toArray(), db.curriculumReviewDecisions.toArray(),
         db.curriculumReviewUnits.toArray(), db.appMeta.get("curriculumVersion"),
-        db.importedCurricula.toArray(), db.concepts.toArray(),
+        db.importedCurricula.toArray(), db.concepts.toArray(), db.pronunciationFlags.toArray(),
       ]),
     );
   return backupEnvelopeSchema.parse({
     format: "english-srs-backup", backupSchemaVersion: 4, exportedAt, appVersion,
     curriculumVersion: curriculumMeta?.value ?? "",
-    payload: { settings, unitStates, conceptProgress, directionStates, attempts, answerOverrides, dailyLedgers, curriculumReviewDecisions, curriculumReviewUnits, importedCurricula, conceptDefinitions, definitionsIncluded: true },
+    payload: { settings, unitStates, conceptProgress, directionStates, attempts, answerOverrides, dailyLedgers, curriculumReviewDecisions, curriculumReviewUnits, importedCurricula, conceptDefinitions, pronunciationFlags, definitionsIncluded: true },
   });
 }
 
@@ -149,7 +152,7 @@ export function parseBackup(input: unknown): BackupEnvelope {
   const versionThree = versionThreeBackupEnvelopeSchema.safeParse(input);
   if (versionThree.success) return {
     ...versionThree.data, backupSchemaVersion: 4,
-    payload: { ...versionThree.data.payload, importedCurricula: [], conceptDefinitions: [], definitionsIncluded: false },
+    payload: { ...versionThree.data.payload, importedCurricula: [], conceptDefinitions: [], pronunciationFlags: [], definitionsIncluded: false },
   };
   const versionTwo = versionTwoBackupEnvelopeSchema.safeParse(input);
   const legacy = versionTwo.success ? versionTwo.data : legacyBackupEnvelopeSchema.parse(input);
@@ -162,7 +165,7 @@ export function parseBackup(input: unknown): BackupEnvelope {
     payload: {
       ...legacy.payload,
       ...review,
-      importedCurricula: [], conceptDefinitions: [], definitionsIncluded: false,
+      importedCurricula: [], conceptDefinitions: [], pronunciationFlags: [], definitionsIncluded: false,
       directionStates: legacy.payload.directionStates.map((state) => normalizeDirectionState(state as never)),
       attempts: legacy.payload.attempts.map((attempt) => ({
         ...attempt,
@@ -177,7 +180,7 @@ export async function restoreBackup(db: EnglishSrsDatabase, input: unknown): Pro
   const payload = backup.payload as MutableBackupPayload;
   await db.transaction(
     "rw",
-    [db.settings, db.units, db.concepts, db.conceptProgress, db.directionStates, db.attempts, db.answerOverrides, db.dailyLedgers, db.sessions, db.sessionQuestions, db.curriculumReviewDecisions, db.curriculumReviewUnits, db.importedCurricula],
+    [db.settings, db.units, db.concepts, db.conceptProgress, db.directionStates, db.attempts, db.answerOverrides, db.dailyLedgers, db.sessions, db.sessionQuestions, db.curriculumReviewDecisions, db.curriculumReviewUnits, db.importedCurricula, db.pronunciationFlags],
     async () => {
       if (payload.definitionsIncluded) {
         await db.concepts.clear();
@@ -198,7 +201,7 @@ export async function restoreBackup(db: EnglishSrsDatabase, input: unknown): Pro
         db.settings.clear(), db.conceptProgress.clear(), db.directionStates.clear(), db.attempts.clear(),
         db.answerOverrides.clear(), db.dailyLedgers.clear(), db.sessions.clear(), db.sessionQuestions.clear(),
         db.curriculumReviewDecisions.clear(), db.curriculumReviewUnits.clear(),
-        db.importedCurricula.clear(),
+        db.importedCurricula.clear(), db.pronunciationFlags.clear(),
       ]);
       await db.units.bulkPut(restoredUnits);
       await Promise.all([
@@ -210,7 +213,7 @@ export async function restoreBackup(db: EnglishSrsDatabase, input: unknown): Pro
         db.directionStates.bulkAdd(payload.directionStates), db.attempts.bulkAdd(payload.attempts),
         db.answerOverrides.bulkAdd(payload.answerOverrides), db.dailyLedgers.bulkAdd(payload.dailyLedgers),
         db.curriculumReviewDecisions.bulkAdd(payload.curriculumReviewDecisions), db.curriculumReviewUnits.bulkAdd(payload.curriculumReviewUnits),
-        db.importedCurricula.bulkAdd(payload.importedCurricula),
+        db.importedCurricula.bulkAdd(payload.importedCurricula), db.pronunciationFlags.bulkAdd(payload.pronunciationFlags),
       ]);
       await recoverUnfinishedIntroductions(db);
     },

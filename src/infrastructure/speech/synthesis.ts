@@ -29,6 +29,7 @@ type SpeechRequest = {
   text: string;
   locale: SpeechLocale;
   record: SpeechPlaybackDiagnostic;
+  onStarted?: () => void;
   resolve: (voice: SelectedVoice) => void;
   reject: (error: Error) => void;
 };
@@ -97,6 +98,12 @@ export function prepareSpeechSynthesis() {
   if (voices.length) cachedVoices = voices;
 }
 
+function playbackStarted(request: SpeechRequest) {
+  if (active !== request) return;
+  recordEvent(request.record, "started");
+  request.onStarted?.();
+}
+
 function playRecording(request: SpeechRequest, clip: NonNullable<ReturnType<typeof findEnglishClip>>) {
   const controller = new AbortController();
   const voice = { name: "Kokoro · af_heart", lang: "en-US", localService: true };
@@ -115,7 +122,7 @@ function playRecording(request: SpeechRequest, clip: NonNullable<ReturnType<type
   const timer = window.setTimeout(() => finish("timeout", new Error("english-audio-timeout")), MAX_COMPLETION_TIMEOUT_MS);
   stopActive = () => finish("cancelled");
   recordEvent(request.record, "dispatched");
-  void playEnglishClip(clip, controller.signal, () => recordEvent(request.record, "started"))
+  void playEnglishClip(clip, controller.signal, () => playbackStarted(request))
     .then(() => finish("ended"), (error: unknown) => finish("error", error instanceof Error ? error : new Error(String(error))));
 }
 
@@ -192,7 +199,7 @@ function playNext() {
     finish("cancelled");
     try { synthesis.cancel(); } catch { /* Already stopped. */ }
   };
-  utterance.onstart = () => recordEvent(request.record, "started");
+  utterance.onstart = () => playbackStarted(request);
   utterance.onend = () => finish("ended");
   utterance.onerror = (event) => finish("error", new Error(event.error || "speech-synthesis-error"));
   timeout = window.setTimeout(
@@ -212,7 +219,7 @@ function playNext() {
  * Speech is serialized rather than cancelled between cards. Callers may move the UI on
  * without waiting: a following audio question plays only after the previous answer finishes.
  */
-export function speak(text: string, locale: SpeechLocale, options: { source?: SpeechSource } = {}): Promise<SelectedVoice> {
+export function speak(text: string, locale: SpeechLocale, options: { source?: SpeechSource; onStarted?: () => void } = {}): Promise<SelectedVoice> {
   const record: SpeechPlaybackDiagnostic = {
     id: Date.now() + "-" + (++sequence),
     requestedAt: Date.now(),
@@ -224,7 +231,7 @@ export function speak(text: string, locale: SpeechLocale, options: { source?: Sp
   };
   return new Promise<SelectedVoice>((resolve, reject) => {
     const queued = active !== null || pending.length !== 0 || recoveryTimer !== null;
-    pending.push({ text, locale, record, resolve, reject });
+    pending.push({ text, locale, record, onStarted: options.onStarted, resolve, reject });
     recordEvent(record, "requested");
     if (queued) recordEvent(record, "queued");
     playNext();

@@ -11,6 +11,7 @@ import type {
   InstalledUnit,
   LearnerSettings,
   PersistedSessionQuestion,
+  PronunciationFlag,
   StudySession,
   CurriculumReviewDecision,
   CurriculumReviewUnit,
@@ -31,6 +32,7 @@ export class EnglishSrsDatabase extends Dexie {
   sessionQuestions!: EntityTable<PersistedSessionQuestion, "id">;
   curriculumReviewDecisions!: EntityTable<CurriculumReviewDecision, "conceptId">;
   curriculumReviewUnits!: EntityTable<CurriculumReviewUnit, "unitId">;
+  pronunciationFlags!: EntityTable<PronunciationFlag, "key">;
   importedCurricula!: EntityTable<ImportedCurriculum, "id">;
 
   constructor(name = "english-srs-v1") {
@@ -97,6 +99,7 @@ export class EnglishSrsDatabase extends Dexie {
       });
     });
     this.version(4).stores({ importedCurricula: "id, importedAt" });
+    this.version(5).stores({ pronunciationFlags: "key, flaggedAt" });
   }
 }
 
