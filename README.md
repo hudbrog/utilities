@@ -82,9 +82,16 @@ Pushes to `main` run the pinned GitHub Pages workflow. It installs from the lock
 The Duolingo and Academy Stars vocabularies include prerecorded American English
 from Kokoro v1.0 (`af_heart`). The PWA downloads the complete set on its first
 online installation. In the parent settings, **Готово без интернета** means
-the service worker is ready and all English audio packs are cached. The same
-clips play for listening prompts, correct answers and replay. Russian and
-unpackaged custom vocabulary use the existing system voice.
+the service worker is ready and all English audio packs are cached.
+
+During study, English prompts play aloud and have a replay button. Russian
+prompts appear as text. Tap the speaker beside an English choice to preview it,
+or tap the choice itself to submit it and hear it. Custom English vocabulary
+without a recording uses the system voice.
+
+Tap **Отметить звук** to save the last pronunciation you heard. Open
+**Для взрослого → Слова → Проверить произношение** to replay flagged words
+and clear them after review. Flags work offline and are included in backups.
 
 The generated assets are checked in. A normal build needs only the usual JS
 dependencies. To add or correct a recording, see [the generator](tools/pronunciation/README.md).
