@@ -3,8 +3,8 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { db } from "../infrastructure/db/database";
 import { approveReviewUnit, loadReviewUnits, saveReviewDecision } from "../infrastructure/db/curriculumReviewRepository";
 import { setIntroducingUnit } from "../infrastructure/db/curriculumRepository";
-import { loadStudy, scoreAnswer, goToNextQuestion } from "./studyService";
-import { exportLearnerBackup, importLearnerBackup } from "./parentService";
+import { flagPronunciation, loadStudy, scoreAnswer, goToNextQuestion } from "./studyService";
+import { clearPronunciationFlag, exportLearnerBackup, importLearnerBackup } from "./parentService";
 import { addCurriculum, previewCurriculumImport, loadParentSnapshot } from "./parentService";
 import { importedId } from "../domain/curriculum/import";
 
@@ -185,4 +185,24 @@ test("application backup restore reconstructs school blocks and the shared progr
   const resumed = await loadStudy(now + 1);
   expect(resumed.current).not.toBeNull();
   expect((await db.dailyLedgers.toArray())[0].quotaConsumed).toBe(1);
+});
+
+test("pronunciation flags survive reload and backup without introducing or scoring a word", async () => {
+  await flagPronunciation("Dog");
+  await flagPronunciation(" dog ");
+  db.close();
+  await db.open();
+  const flags = (await loadParentSnapshot()).pronunciationFlags;
+  expect(flags).toEqual([{ key: "dog", english: "dog", flaggedAt: expect.any(Number) }]);
+  const backup = await exportLearnerBackup("test");
+  await clearPronunciationFlag("dog");
+  expect((await loadParentSnapshot()).pronunciationFlags).toEqual([]);
+  await importLearnerBackup(backup);
+  expect((await loadParentSnapshot()).pronunciationFlags).toEqual(flags);
+  expect(await db.attempts.count()).toBe(0);
+  expect(await db.directionStates.count()).toBe(0);
+  expect(await db.conceptProgress.count()).toBe(0);
+  const { pronunciationFlags: _flags, ...oldPayload } = backup.payload;
+  await importLearnerBackup({ ...backup, payload: oldPayload });
+  expect((await loadParentSnapshot()).pronunciationFlags).toEqual([]);
 });

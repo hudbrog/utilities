@@ -18,7 +18,7 @@ export function selectExerciseType(
   if (state.memoryState !== "review" || state.successfulReviewCount < 2) return "mc_text";
   if ((state.stability ?? 0) < 30) return canUseStt ? "stt_text" : "mc_text";
 
-  if (!capabilities.listeningAudioUnlocked) return canUseStt ? "stt_text" : "mc_text";
+  if (state.direction === "ru-en" || !capabilities.listeningAudioUnlocked) return canUseStt ? "stt_text" : "mc_text";
 
   const useAudio = createSeededRandom(seed)() < 0.3;
   if (canUseStt) return useAudio ? "stt_audio" : "stt_text";

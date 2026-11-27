@@ -245,3 +245,8 @@ export async function introducedConceptIds(): Promise<Set<string>> {
 export async function distractorCurriculum(): Promise<{ concepts: ConceptDefinition[]; units: import("../domain/curriculum/model").UnitDefinition[] }> {
   return loadDistractorCurriculum(db);
 }
+
+export async function flagPronunciation(text: string): Promise<void> {
+  const english = text.trim();
+  await db.pronunciationFlags.put({ key: english.toLowerCase(), english, flaggedAt: Date.now() });
+}

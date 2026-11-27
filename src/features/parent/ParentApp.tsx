@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   approveCleanReviewWords,
   approveCurriculumUnit,
+  clearPronunciationFlag,
   exportCurriculumApprovals,
   exportLearnerBackup,
   importLearnerBackup,
@@ -19,6 +20,7 @@ import {
 } from "../../application/parentService";
 import type { PwaState, PwaUpdateCheckResult } from "../../pwaUpdate";
 import { cancelSpeech, speak } from "../../infrastructure/speech/synthesis";
+import { WordAudioButton } from "../WordAudioButton";
 import { CurriculumImport } from "./CurriculumImport";
 
 type Tab = "today" | "course" | "words" | "settings";
@@ -79,12 +81,6 @@ function ReviewWordEditor({ word, close, save }: { word: ReviewWord; close: () =
       </section>
     </div>
   );
-}
-
-function WordAudioButton({ english, play }: { english: string; play: (english: string) => void }) {
-  const label = `Послушать: ${english}`;
-  return <button type="button" className="word-audio" aria-label={label} title={label}
-    onClick={() => play(english)}><span aria-hidden="true">🔊</span></button>;
 }
 
 function WordRow({ item, progress, open, play }: {
@@ -422,13 +418,28 @@ export function ParentApp({
       )}
 
       {tab === "words" && (
-        <section className="parent-panel">
-          <p className="parent-eyebrow">Словарь</p><h2>Прогресс по словам</h2>
-          <div className="word-list word-list--all">{snapshot.words.map((item) => (
-            <WordRow key={item.concept.id} item={item} open={setSelectedWord} play={playWord}
-              progress={item.progressIntroduced ? `уровни ${item.states["en-ru"]?.stage ?? 0} / ${item.states["ru-en"]?.stage ?? 0}` : "ещё не добавлено"} />
-          ))}</div>
-        </section>
+        <div className="parent-grid">
+          {snapshot.pronunciationFlags.length > 0 && (
+            <section className="parent-panel parent-panel--wide">
+              <h2>Проверить произношение ({snapshot.pronunciationFlags.length})</h2>
+              <ul className="pronunciation-flags">{snapshot.pronunciationFlags.map((flag) => (
+                <li key={flag.key}>
+                  <strong lang="en">{flag.english}</strong>
+                  <WordAudioButton english={flag.english} play={playWord} />
+                  <button type="button" className="text-button" aria-label={`Снять отметку: ${flag.english}`}
+                    onClick={() => void mutateReview(() => clearPronunciationFlag(flag.key), "Отметка снята.")}>Снять отметку</button>
+                </li>
+              ))}</ul>
+            </section>
+          )}
+          <section className="parent-panel parent-panel--wide">
+            <p className="parent-eyebrow">Словарь</p><h2>Прогресс по словам</h2>
+            <div className="word-list word-list--all">{snapshot.words.map((item) => (
+              <WordRow key={item.concept.id} item={item} open={setSelectedWord} play={playWord}
+                progress={item.progressIntroduced ? `уровни ${item.states["en-ru"]?.stage ?? 0} / ${item.states["ru-en"]?.stage ?? 0}` : "ещё не добавлено"} />
+            ))}</div>
+          </section>
+        </div>
       )}
 
       {tab === "settings" && (

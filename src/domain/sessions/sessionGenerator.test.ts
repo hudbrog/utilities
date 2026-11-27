@@ -93,9 +93,11 @@ describe("session generation", () => {
     expect(session).toHaveLength(6);
   });
 
-  it("unlocks mature listening exercises per directional spoken recall", () => {
-    const candidate = review(0, 0, 6);
-    candidate.state.successfulSpokenRecall = true;
+  it.each(["en-ru", "ru-en"] as const)("unlocks listening only for English prompts (%s)", (direction) => {
+    const candidate = {
+      concept: concepts[0],
+      state: makeState("cat", direction, 6, { nextDueAt: 0, successfulSpokenRecall: true }),
+    };
     const seen = new Set<string>();
     for (let index = 0; index < 40; index += 1) {
       seen.add(generateSession({
@@ -103,7 +105,8 @@ describe("session generation", () => {
         seed: `listening-${index}`, capabilities,
       })[0].exerciseType);
     }
-    expect(seen.has("stt_audio")).toBe(true);
+    expect(seen.has("stt_audio")).toBe(direction === "en-ru");
+    expect(seen.has("stt_text")).toBe(true);
   });
 
   it("inserts remediation three to five questions later and clamps to the end", () => {

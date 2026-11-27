@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 
 import { buildMultipleChoiceOptions, type MultipleChoiceOption } from "../../domain/exercises/distractors";
-import { cancelSpeech, prepareSpeechSynthesis, speak } from "../../infrastructure/speech/synthesis";
-import type { SpeechLocale } from "../../infrastructure/speech/recognition";
+import { cancelSpeech, prepareSpeechSynthesis, speak, type SpeechSource } from "../../infrastructure/speech/synthesis";
+import { WordAudioButton } from "../WordAudioButton";
 import { isAcceptedAnswer } from "../../domain/exercises/matching";
 import { RecognitionError } from "../../infrastructure/speech/recognition";
 import { StudyPrompt } from "./StudyPrompt";
 import { useSpeechRecognition } from "../useSpeechRecognition";
 import {
+  flagPronunciation,
   goToNextQuestion,
   distractorCurriculum,
   introducedConceptIds,
@@ -63,8 +64,12 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
   const [audioError, setAudioError] = useState(false);
   const [promptAudioError, setPromptAudioError] = useState<"tap" | "failed" | null>(null);
   const [promptPlaying, setPromptPlaying] = useState(false);
-  const [answerPlaying, setAnswerPlaying] = useState(false);
-  const [lastAnswer, setLastAnswer] = useState<{ text: string; locale: SpeechLocale } | null>(null);
+  const [pendingAudio, setPendingAudio] = useState(0);
+  const [lastAnswer, setLastAnswer] = useState<string | null>(null);
+  const [lastHeard, setLastHeard] = useState<string | null>(null);
+  const [flagged, setFlagged] = useState<Set<string>>(() => new Set());
+  const [flagError, setFlagError] = useState(false);
+  const [wrongEnglishChoice, setWrongEnglishChoice] = useState<string | null>(null);
   const [sttAttempts, setSttAttempts] = useState<string[][]>([]);
   const [sttMessage, setSttMessage] = useState<string | null>(null);
   const [mcFallback, setMcFallback] = useState(false);
@@ -77,6 +82,7 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
 
   const replaceSnapshot = useCallback(async (snapshot: StudySnapshot) => {
     setSelectedId(null);
+    setWrongEnglishChoice(null);
     setAudioError(false);
     setPromptAudioError(null);
     setPromptPlaying(false);
@@ -102,14 +108,26 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
     setBusy(false);
   };
 
+  const playEnglish = useCallback(async (english: string, source: SpeechSource) => {
+    setPendingAudio((count) => count + 1);
+    try {
+      await speak(english, "en-US", { source, onStarted: () => {
+        setLastHeard(english);
+        setFlagError(false);
+      } });
+    } finally {
+      setPendingAudio((count) => count - 1);
+    }
+  }, []);
+
   const playPrompt = useCallback(async (snapshot: StudySnapshot) => {
     const question = snapshot.current;
-    if (!question) return;
+    if (question?.direction !== "en-ru" || !snapshot.concept) return;
     const playbackId = ++promptPlaybackId.current;
     setPromptPlaying(true);
     setPromptAudioError(null);
     try {
-      await speak(promptText(snapshot), question.direction === "en-ru" ? "en-US" : "ru-RU", { source: "prompt" });
+      await playEnglish(snapshot.concept.en, "prompt");
     } catch (error) {
       if (currentQuestionId.current === question.id && promptPlaybackId.current === playbackId) {
         setPromptAudioError(messageFor(error) === "english-audio-needs-tap" ? "tap" : "failed");
@@ -117,7 +135,7 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
     } finally {
       if (currentQuestionId.current === question.id && promptPlaybackId.current === playbackId) setPromptPlaying(false);
     }
-  }, []);
+  }, [playEnglish]);
 
   useEffect(() => {
     prepareSpeechSynthesis();
@@ -137,14 +155,14 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
       .catch((error: unknown) => setView({ status: "error", message: messageFor(error) }));
   }, [replaceSnapshot]);
 
-  const audioQuestionId = view.status === "ready" && view.snapshot.current?.status === "current" &&
-    view.snapshot.current.exerciseType.endsWith("audio") ? view.snapshot.current.id : null;
+  const englishPromptId = view.status === "ready" && view.snapshot.current?.status === "current" &&
+    view.snapshot.current.direction === "en-ru" ? view.snapshot.current.id : null;
   const playCurrentPrompt = useEffectEvent(() => {
     if (view.status === "ready") void playPrompt(view.snapshot);
   });
   useEffect(() => {
-    if (audioQuestionId) playCurrentPrompt();
-  }, [audioQuestionId]);
+    if (englishPromptId) playCurrentPrompt();
+  }, [englishPromptId]);
 
   const progress = useMemo(() => {
     if (view.status !== "ready") return { completed: 0, total: 0, mistakes: 0 };
@@ -155,34 +173,38 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
     };
   }, [view]);
 
-  const playAnswer = async (snapshot: StudySnapshot) => {
-    if (!snapshot.current) return;
-    const questionId = snapshot.current.id;
+  const playWord = (english: string, source: "answer" | "replay") => {
+    const questionId = currentQuestionId.current;
+    if (source === "replay") cancelSpeech();
     setAudioError(false);
-    setAnswerPlaying(true);
-    try {
-      await speak(answerText(snapshot), snapshot.current.direction === "en-ru" ? "ru-RU" : "en-US", { source: "answer" });
-    } catch {
+    void playEnglish(english, source).catch(() => {
       if (currentQuestionId.current === questionId) setAudioError(true);
-    } finally {
-      setAnswerPlaying(false);
+    });
+  };
+
+  const showScoredAnswer = async (scored: StudySnapshot, selectedEnglish?: string) => {
+    if (!scored.concept) return;
+    const correct = scored.current?.revealedOutcome === "correct";
+    setLastAnswer(scored.concept.en);
+    await replaceSnapshot(scored);
+    if (!correct && selectedEnglish) setWrongEnglishChoice(selectedEnglish);
+    playWord(selectedEnglish ?? scored.concept.en, "answer");
+    if (correct) {
+      await delay(CORRECT_FEEDBACK_MS);
+      await replaceSnapshot(await goToNextQuestion(scored));
     }
   };
 
-  const showScoredAnswer = async (scored: StudySnapshot) => {
-    if (scored.current?.revealedOutcome === "correct") {
-      setLastAnswer({ text: answerText(scored), locale: scored.current.direction === "en-ru" ? "ru-RU" : "en-US" });
-    } else {
-      setLastAnswer(null);
+  const flagLastHeard = async () => {
+    if (!lastHeard) return;
+    const word = lastHeard;
+    try {
+      await flagPronunciation(word);
+      setFlagged((words) => new Set(words).add(word.trim().toLowerCase()));
+      setFlagError(false);
+    } catch {
+      setFlagError(true);
     }
-    await replaceSnapshot(scored);
-    if (scored.current?.revealedOutcome !== "correct") {
-      void playAnswer(scored);
-      return;
-    }
-    void playAnswer(scored);
-    await delay(CORRECT_FEEDBACK_MS);
-    await replaceSnapshot(await goToNextQuestion(scored));
   };
 
   const showWordChoices = async () => {
@@ -208,12 +230,14 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
 
   const choose = async (option: MultipleChoiceOption) => {
     if (view.status !== "ready" || view.snapshot.current?.status !== "current" || !beginAction()) return;
+    const englishChoice = view.snapshot.current.direction === "ru-en";
+    if (englishChoice) cancelSpeech();
     setSelectedId(option.conceptId);
     try {
       await showScoredAnswer(await scoreAnswer(view.snapshot, option.correct, {
         completionMode: "multiple-choice",
         ...(sttAttempts.length ? { sttAttemptCount: sttAttempts.length, sttTranscripts: sttAttempts } : {}),
-      }));
+      }), englishChoice ? option.text : undefined);
     } catch (error) {
       setView({ status: "error", message: messageFor(error) });
     } finally {
@@ -222,7 +246,7 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
   };
 
   const listen = async () => {
-    if (view.status !== "ready" || !view.snapshot.current || !view.snapshot.concept || promptPlaying || answerPlaying || !beginAction()) return;
+    if (view.status !== "ready" || !view.snapshot.current || !view.snapshot.concept || pendingAudio > 0 || !beginAction()) return;
     setSttMessage(null);
     try {
       const locale = view.snapshot.current.direction === "en-ru" ? "ru-RU" : "en-US";
@@ -285,6 +309,28 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
   }
 
   const { snapshot, options } = view;
+  const revealed = snapshot.current?.status === "revealed";
+  const englishPrompt = snapshot.current?.direction === "en-ru";
+  const audioPrompt = englishPrompt && Boolean(snapshot.current?.exerciseType.endsWith("audio"));
+  const speechQuestion = snapshot.current?.exerciseType.startsWith("stt_") && !mcFallback;
+  const showHeardWord = revealed || snapshot.completed || (englishPrompt ? !audioPrompt : !speechQuestion);
+  const recording = recognition.phase !== "idle";
+  const alreadyFlagged = lastHeard !== null && flagged.has(lastHeard.trim().toLowerCase());
+  const audioTools = (lastHeard || lastAnswer) && (
+    <footer className="study-audio-tools">
+      {!revealed && lastAnswer && (
+        <button type="button" disabled={recording} onClick={() => playWord(lastAnswer, "replay")}>
+          <span aria-hidden="true">↻</span> Предыдущее слово
+        </button>
+      )}
+      {lastHeard && <button type="button" disabled={alreadyFlagged} onClick={() => void flagLastHeard()}
+        title="Отметить последнее прослушанное слово для проверки взрослым">
+        <span aria-hidden="true">{alreadyFlagged ? "✓" : "⚑"}</span> {alreadyFlagged ? "Звук отмечен" : "Отметить звук"}
+        {showHeardWord && <> «<span lang="en">{lastHeard}</span>»</>}
+      </button>}
+      {flagError && <small role="alert">Не удалось сохранить отметку. Попробуйте ещё раз.</small>}
+    </footer>
+  );
   if (snapshot.completed) {
     const needsCurriculum = snapshot.emptyReason === "no-curriculum";
     return (
@@ -299,17 +345,16 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
             <div><strong>{Math.max(0, progress.total - progress.mistakes)}</strong><span>сразу правильно</span></div>
             <div><strong>{progress.mistakes}</strong><span>повторили</span></div>
           </div>
+          {audioTools}
+          {audioError && <small className="audio-warning" role="status">Не удалось воспроизвести звук</small>}
           <button className={needsCurriculum ? "button button--primary" : "text-button diagnostics-link"} onClick={openDiagnostics}>{needsCurriculum ? "Открыть раздел для взрослого" : "Диагностика для взрослого"}</button>
         </section>
       </main>
     );
   }
 
-  const revealed = snapshot.current?.status === "revealed";
   const correct = snapshot.current?.revealedOutcome === "correct";
   const currentNumber = Math.min(progress.completed + 1, progress.total);
-  const speechQuestion = snapshot.current?.exerciseType.startsWith("stt_") && !mcFallback;
-  const audioPrompt = snapshot.current?.exerciseType.endsWith("audio");
   const canStopListening = recognition.phase === "starting" || recognition.phase === "listening";
   const recognitionMessage = {
     idle: sttMessage ?? "Нажми и скажи перевод",
@@ -329,18 +374,14 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
         </header>
 
         <StudyPrompt text={promptText(snapshot)} direction={snapshot.current!.direction}
-          audio={Boolean(audioPrompt)} audioFailed={promptAudioError === "failed"} needsTap={promptAudioError === "tap"} onReplay={() => void playPrompt(snapshot)} />
-        {!revealed && lastAnswer && (
-          <button className="replay-button" type="button"
-            onClick={() => void speak(lastAnswer.text, lastAnswer.locale, { source: "replay" }).catch(() => setAudioError(true))}>
-            🔊 Повторить предыдущий ответ
-          </button>
-        )}
+          audio={audioPrompt} audioFailed={promptAudioError === "failed"} needsTap={promptAudioError === "tap"}
+          disabled={recording} onReplay={() => { cancelSpeech(); void playPrompt(snapshot); }} />
+        {!audioPrompt && promptAudioError === "failed" && <small className="audio-warning" role="status">Не удалось воспроизвести звук</small>}
 
         {!revealed && speechQuestion ? (
           <div className="speech-answer">
             <button className={canStopListening ? "microphone-button microphone-button--active" : "microphone-button"}
-              disabled={requestingChoices || ((busy || promptPlaying || answerPlaying) && !canStopListening)} onClick={canStopListening ? recognition.stop : () => void listen()}
+              disabled={requestingChoices || ((busy || pendingAudio > 0) && !canStopListening)} onClick={canStopListening ? recognition.stop : () => void listen()}
               aria-label={canStopListening ? "Закончить ответ" : "Ответить голосом"} aria-pressed={canStopListening}>
               <span aria-hidden="true">{canStopListening ? "■" : recognition.phase === "processing" ? "…" : "🎙"}</span>
               <span className="microphone-button__label">{canStopListening ? "Готово" : recognition.phase === "processing" ? "Жду ответ" : "Ответить"}</span>
@@ -355,18 +396,18 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
         ) : !revealed ? (
           <div className="choice-list">
             {options.map((option) => (
-              <button
-                className={`choice ${selectedId === option.conceptId ? "choice--selected" : ""}`}
-                disabled={busy || promptPlaying}
-                key={option.conceptId}
-                onClick={() => void choose(option)}
-              >
-                {option.text}
-              </button>
+              <div className={englishPrompt ? "choice-row" : "choice-row choice-row--audio"} key={option.conceptId}>
+                <button type="button" className={`choice ${selectedId === option.conceptId ? "choice--selected" : ""}`}
+                  disabled={busy || (audioPrompt && promptPlaying)} onClick={() => void choose(option)}>
+                  {option.text}
+                </button>
+                {!englishPrompt && <WordAudioButton english={option.text} disabled={busy} play={(word) => playWord(word, "replay")} />}
+              </div>
             ))}
           </div>
         ) : (
           <div className="reveal" aria-live="polite">
+            {wrongEnglishChoice && <p className="selected-answer">Твой ответ — <strong lang="en">{wrongEnglishChoice}</strong></p>}
             <div className="reveal__result">
               <span className="reveal__icon" aria-hidden="true">{correct ? "✓" : "→"}</span>
               <div>
@@ -374,13 +415,15 @@ export function LearnerApp({ openDiagnostics }: { openDiagnostics: () => void })
                 <strong>{answerText(snapshot)}</strong>
               </div>
             </div>
-            <button className="replay-button" onClick={() => void speak(answerText(snapshot), snapshot.current!.direction === "en-ru" ? "ru-RU" : "en-US", { source: "replay" }).catch(() => setAudioError(true))} aria-label="Повторить произношение">🔊 Ещё раз</button>
-            {audioError && <small className="audio-warning">Не удалось воспроизвести звук</small>}
+            <button type="button" className="replay-button" onClick={() => playWord(snapshot.concept!.en, "replay")}
+              aria-label={`Послушать: ${snapshot.concept!.en}`}>🔊 {wrongEnglishChoice ? "Послушать правильный ответ" : "Ещё раз"}</button>
             {correct
               ? <small>Следующее слово…</small>
               : <button className="next-button" disabled={busy} onClick={() => void next()}>Дальше</button>}
           </div>
         )}
+        {audioError && <small className="audio-warning" role="status">Не удалось воспроизвести звук</small>}
+        {audioTools}
       </section>
     </main>
   );

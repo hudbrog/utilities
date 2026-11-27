@@ -3,13 +3,14 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { concepts, units } from "../../domain/testFixtures";
-import { distractorCurriculum, goToNextQuestion, introducedConceptIds, loadStudy, requestWordChoices, scoreAnswer, type StudySnapshot } from "../../application/studyService";
+import { flagPronunciation, distractorCurriculum, goToNextQuestion, introducedConceptIds, loadStudy, requestWordChoices, scoreAnswer, type StudySnapshot } from "../../application/studyService";
 import { FakeRecognition, recognitionEvent } from "../../test/speechRecognition";
+import { speak } from "../../infrastructure/speech/synthesis";
 import { LearnerApp } from "./LearnerApp";
 import { SpeechTestCard } from "../diagnostics/SpeechTestCard";
 
 vi.mock("../../application/studyService", () => ({
-  loadStudy: vi.fn(), requestWordChoices: vi.fn(), scoreAnswer: vi.fn(), goToNextQuestion: vi.fn(), distractorCurriculum: vi.fn(), introducedConceptIds: vi.fn(),
+  flagPronunciation: vi.fn(), loadStudy: vi.fn(), requestWordChoices: vi.fn(), scoreAnswer: vi.fn(), goToNextQuestion: vi.fn(), distractorCurriculum: vi.fn(), introducedConceptIds: vi.fn(),
 }));
 vi.mock("../../infrastructure/speech/synthesis", () => ({ speak: vi.fn(async () => null), prepareSpeechSynthesis: vi.fn(), cancelSpeech: vi.fn() }));
 
@@ -29,6 +30,10 @@ beforeEach(async () => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.stubGlobal("SpeechRecognition", FakeRecognition);
   FakeRecognition.reset();
+  vi.mocked(speak).mockImplementation(async (_text, _locale, options) => {
+    options?.onStarted?.();
+    return null;
+  });
   vi.mocked(requestWordChoices).mockResolvedValue({ ...question, exerciseType: "mc_text" });
   vi.mocked(loadStudy).mockResolvedValue(structuredClone(snapshot));
   vi.mocked(distractorCurriculum).mockResolvedValue({ concepts, units });
@@ -204,4 +209,81 @@ test("correct answers expose replay during feedback without delaying the transit
   expect(container.textContent).toContain("Ещё раз");
   await act(async () => { await vi.advanceTimersByTimeAsync(700); });
   expect(goToNextQuestion).toHaveBeenCalledTimes(1);
+});
+
+async function startQuestion(direction: "en-ru" | "ru-en", exerciseType: NonNullable<StudySnapshot["current"]>["exerciseType"]) {
+  const current = { ...question, direction, exerciseType };
+  vi.mocked(loadStudy).mockResolvedValue({ ...snapshot, current, questions: [current] });
+  vi.mocked(speak).mockClear();
+  await act(async () => root!.render(createElement(LearnerApp, { key: "new-session", openDiagnostics: vi.fn() })));
+  await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+}
+
+test("English prompts replay independently, and a Russian spoken answer gets English feedback", async () => {
+  const speaker = container.querySelector<HTMLButtonElement>('.study-prompt [aria-label="Послушать: cat"]')!;
+  await act(async () => speaker.click());
+  expect(speak).toHaveBeenCalledTimes(2);
+  expect(scoreAnswer).not.toHaveBeenCalled();
+  await clickMic();
+  expect(speaker.disabled).toBe(true);
+  await finalResult("кот");
+  expect(vi.mocked(speak).mock.calls.map(([text, lang]) => [text, lang])).toEqual(Array(3).fill(["cat", "en-US"]));
+});
+
+test("a saved Russian audio question shows text and keeps the English answer hidden during recall", async () => {
+  await startQuestion("ru-en", "stt_audio");
+  expect(container.querySelector("h1")?.textContent).toBe("кот");
+  expect(container.querySelector(".study-prompt button")).toBeNull();
+  expect(container.textContent).not.toContain("cat");
+  expect(speak).not.toHaveBeenCalled();
+});
+
+test("option speakers preview without choosing, and flags follow the clip even after a wrong selection", async () => {
+  await startQuestion("ru-en", "mc_text");
+  const rows = [...container.querySelectorAll(".choice-row")];
+  expect(rows).toHaveLength(4);
+  for (const row of rows) {
+    const word = row.querySelector(".choice")!.textContent;
+    await act(async () => row.querySelector<HTMLButtonElement>(".word-audio")!.click());
+    expect(speak).toHaveBeenLastCalledWith(word, "en-US", expect.anything());
+  }
+  expect(scoreAnswer).not.toHaveBeenCalled();
+  const wrong = rows.map((row) => row.querySelector<HTMLButtonElement>(".choice")!).find((button) => button.textContent !== "cat")!;
+  const chosen = wrong.textContent;
+  await act(async () => wrong.click());
+  expect(scoreAnswer).toHaveBeenCalledExactlyOnceWith(expect.anything(), false, { completionMode: "multiple-choice" });
+  expect(speak).toHaveBeenLastCalledWith(chosen, "en-US", expect.objectContaining({ source: "answer" }));
+  expect(container.querySelector(".reveal__result strong")?.textContent).toBe("cat");
+  const flag = () => container.querySelector<HTMLButtonElement>(".study-audio-tools button[title]")!;
+  await act(async () => flag().click());
+  expect(flagPronunciation).toHaveBeenCalledExactlyOnceWith(chosen);
+  expect(flag().disabled).toBe(true);
+  await act(async () => container.querySelector<HTMLButtonElement>(".reveal .replay-button")!.click());
+  expect(speak).toHaveBeenLastCalledWith("cat", "en-US", expect.anything());
+  expect(flag().disabled).toBe(false);
+  await act(async () => flag().click());
+  expect(flagPronunciation).toHaveBeenLastCalledWith("cat");
+});
+
+test("queued playback leaves the previous word available to flag after auto-advance", async () => {
+  await startQuestion("ru-en", "mc_text");
+  const next = { ...question, id: "next", conceptId: "dog", exerciseType: "mc_audio" as const };
+  vi.mocked(goToNextQuestion).mockResolvedValue({ ...snapshot, current: next, concept: concepts[1] });
+  const cat = [...container.querySelectorAll<HTMLButtonElement>(".choice")].find((button) => button.textContent === "cat")!;
+  await act(async () => cat.click());
+  expect(speak).toHaveBeenLastCalledWith("cat", "en-US", expect.objectContaining({ source: "answer" }));
+  let startNext: (() => void) | undefined;
+  vi.mocked(speak).mockImplementationOnce(async (_text, _locale, options) => { startNext = options?.onStarted; return null; });
+  await act(async () => { await vi.advanceTimersByTimeAsync(700); });
+  expect(container.querySelector("h1")).toBeNull();
+  const flag = () => container.querySelector<HTMLButtonElement>(".study-audio-tools button[title]")!;
+  await act(async () => flag().click());
+  expect(flagPronunciation).toHaveBeenLastCalledWith("cat");
+  await act(async () => startNext!());
+  expect(container.textContent).not.toContain("dog");
+  await act(async () => flag().click());
+  expect(flagPronunciation).toHaveBeenLastCalledWith("dog");
+  const previous = container.querySelector<HTMLButtonElement>(".study-audio-tools button:first-child")!;
+  await act(async () => previous.click());
+  expect(speak).toHaveBeenLastCalledWith("cat", "en-US", expect.objectContaining({ source: "replay" }));
 });
